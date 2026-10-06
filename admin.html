@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f6f0e3">
+<title>后台</title>
+<link rel="stylesheet" href="theme.css?v=8">
+<style>
+  .rays { opacity: .5; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px 80px; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; padding: 30px 0 16px; border-bottom: 1px solid var(--gold-soft); }
+  header h1 { font-size: 26px; font-weight: 800; letter-spacing: .3em; }
+  header nav { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--ink-3); flex-wrap: wrap; }
+  header nav a { text-decoration: none; color: var(--emerald); font-weight: 700; padding: 6px 10px; box-shadow: inset 0 0 0 1px var(--gold-soft); border-radius: 2px; }
+  header nav a:hover { background: var(--gold-faint); }
+
+  section.frame { margin-top: 22px; padding: 26px 30px 28px; }
+  section.frame > * { position: relative; z-index: 1; }
+  h2 { font-size: 18px; font-weight: 800; letter-spacing: .16em; display: flex; align-items: center; gap: 10px; }
+  h2::before { content: ''; width: 7px; height: 7px; transform: rotate(45deg); background: var(--gold); flex: none; }
+  .row-h { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .hint { font-size: 13px; color: var(--ink-3); margin-top: 6px; }
+
+  /* 现在台上 */
+  .stage { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; }
+  .stage .who { display: flex; align-items: baseline; gap: 18px; min-width: 0; }
+  .stage .no { font-family: var(--num); font-weight: 900; font-size: 64px; line-height: 1; }
+  .stage .nm { font-size: 46px; font-weight: 800; letter-spacing: .06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stage .nm.none { font-size: 26px; color: var(--ink-3); font-weight: 600; letter-spacing: .04em; }
+  .stage .ctl { display: flex; gap: 10px; align-items: center; }
+  .stage .ctl .btn { height: 54px; padding: 0 28px; font-size: 16px; }
+  .got { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--gold-faint); }
+  .got .line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .got .big { font-size: 20px; font-weight: 700; }
+  .got .big b { font-family: var(--num); font-size: 44px; font-weight: 900; margin: 0 4px; color: var(--emerald); }
+  .got .big small { font-family: var(--num); font-size: 26px; color: var(--ink-3); font-weight: 800; }
+  .meter { height: 6px; background: var(--gold-faint); margin: 14px 0 16px; border-radius: 3px; overflow: hidden; }
+  .meter i { display: block; height: 100%; background: var(--gold); transition: width .5s var(--ease); }
+  .meter.full i { background: var(--emerald); }
+  .missing { font-size: 17px; line-height: 1.9; }
+  .missing .lbl { color: var(--ruby); font-weight: 800; margin-right: 6px; }
+  .missing .ok { color: var(--emerald); font-weight: 800; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .1em; padding: 2px 8px; border-radius: 2px; background: var(--ruby); color: var(--ivory); vertical-align: middle; }
+
+  /* 出场名单 */
+  .list .item { border-bottom: 1px solid var(--gold-faint); }
+  .list .item:first-child { border-top: 1px solid var(--gold-faint); }
+  .list .main { display: grid; grid-template-columns: 44px 1fr 160px 64px 84px 84px; align-items: center; gap: 12px; padding: 10px 0; }
+  .list .n { font-family: var(--num); font-weight: 800; font-size: 20px; color: var(--gold); }
+  .list .name { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .list .name span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .list .bar { height: 4px; background: var(--gold-faint); border-radius: 2px; overflow: hidden; }
+  .list .bar i { display: block; height: 100%; background: var(--gold); }
+  .list .c { font-family: var(--num); font-weight: 800; font-size: 18px; text-align: right; }
+  .list .item.full .bar i { background: var(--emerald); }
+  .list .item.full .c { color: var(--emerald); }
+  .list .item.on { background: rgba(15, 92, 77, .06); }
+  .list .who-miss { background: none; border: 0; cursor: pointer; font-size: 14px; color: var(--ruby); font-weight: 700; text-align: right; padding: 6px 0; }
+  .list .who-miss:disabled { color: var(--ink-3); font-weight: 500; cursor: default; }
+  .list .go { background: none; border: 0; cursor: pointer; font-size: 14px; color: var(--emerald); font-weight: 700; padding: 6px 0; text-align: right; }
+  .list .item.on .go { color: var(--ink-3); cursor: default; }
+  .list .more { display: none; padding: 0 0 14px 56px; font-size: 15px; line-height: 1.8; color: var(--ink-2); }
+  .list .item.open .more { display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+
+  /* 谁没来 */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 10px; border: 0; cursor: pointer; border-radius: 2px;
+    background: var(--ivory); box-shadow: inset 0 0 0 1px var(--gold-soft); font-size: 15px; font-weight: 600; }
+  .chip:hover { background: var(--gold-faint); }
+  .chip .num { font-family: var(--num); font-size: 15px; font-weight: 800; color: var(--gold); }
+  .chip.off { background: var(--ruby); color: var(--ivory); box-shadow: none; text-decoration: line-through; }
+  .chip.off .num { color: var(--gold-hi); }
+
+  .state { font-size: 16px; font-weight: 700; }
+  .state.yes { color: var(--emerald); }
+  .tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  /* 二维码 */
+  details.qrbox summary { cursor: pointer; list-style: none; }
+  details.qrbox summary::-webkit-details-marker { display: none; }
+  details.qrbox summary h2::after { content: '展开'; font-size: 13px; color: var(--emerald); letter-spacing: .1em; margin-left: 6px; }
+  details.qrbox[open] summary h2::after { content: '收起'; }
+  .qrs { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 18px; margin-top: 18px; }
+  .qr { display: flex; flex-direction: column; gap: 8px; }
+  .qr img { width: 100%; display: block; box-shadow: 0 10px 24px -18px rgba(27, 34, 32, .5); }
+  .qr .acts { display: flex; justify-content: space-between; }
+  .qr .acts a, .qr .acts button { color: var(--emerald); text-decoration: none; background: none; border: 0; cursor: pointer; font-size: 13px; font-weight: 600; padding: 6px 0; }
+
+  .danger h2 { color: var(--ruby); }
+  .danger h2::before { background: var(--ruby); }
+  .gate { min-height: 80vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 0 14px 60px; }
+    header { flex-direction: column; align-items: flex-start; }
+    section.frame { padding: 20px 16px; margin-top: 14px; }
+    .stage { grid-template-columns: 1fr; gap: 16px; }
+    .stage .no { font-size: 44px; } .stage .nm { font-size: 32px; }
+    .stage .ctl .btn { flex: 1; padding: 0 10px; }
+    .list .main { grid-template-columns: 30px 1fr 50px 64px 74px; }
+    .list .bar { display: none; }
+
+    .list .more { padding-left: 0; }
+    .qrs { grid-template-columns: 1fr 1fr; gap: 12px; }
+  }
+  @media print {
+    @page { margin: 10mm; }
+    body { background: #fff; }
+    .rays, header, section:not(.print), .qr .acts, .toast, summary { display: none !important; }
+    section.print { border: 0; padding: 0; margin: 0; background: none; }
+    section.print::after { display: none; }
+    .wrap { max-width: none; padding: 0; }
+    .qrs { grid-template-columns: repeat(4, 1fr); gap: 6mm; }
+    .qr { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="rays"></div>
+<main class="wrap" id="app"></main>
+<script src="vendor/workbuddy-cloud-sdk.js"></script>
+<script src="vendor/qrcode-generator.js"></script>
+<script src="cloud.js?v=8"></script>
+<script src="deco.js?v=8"></script>
+<script>
+const app = document.getElementById('app');
+let P = [], J = [], S = [], SET = {}, ALL = [];   // P=上台选手，J=要打分的人（选手+工作人员），ALL=完整名单（含缺席）
+let openRow = null;
+
+async function gate() {
+  if (await askPass()) return boot();
+  app.innerHTML = `<div class="gate"><h1 class="title-deco">后台</h1><button class="btn" id="again">输入口令</button></div>`;
+  document.getElementById('again').onclick = gate;
+}
+
+async function boot() {
+  app.innerHTML = `
+    <header>
+      <h1>后台</h1>
+      <nav>大屏页面：<a href="draw.html" target="_blank">抽签</a><a href="rank.html" target="_blank">实时排名</a><a href="final.html" target="_blank">颁奖</a></nav>
+    </header>
+
+    <section class="frame">
+      <div class="row-h"><h2>现在台上</h2><button class="link-btn" id="clearStage">没人在台上</button></div>
+      <div class="stage">
+        <div class="who" id="stageWho"></div>
+        <div class="ctl">
+          <button class="btn btn-line" id="prevBtn">上一位</button>
+          <button class="btn" id="nextBtn">下一位</button>
+        </div>
+      </div>
+      <div class="got" id="stageGot"></div>
+    </section>
+
+    <section class="frame">
+      <div class="row-h"><div><h2>出场名单</h2><p class="hint">每位选手收到了几个人的分。点「还差谁」看名字并复制催办。</p></div></div>
+      <div class="list" id="list"></div>
+    </section>
+
+    <section class="frame">
+      <div class="row-h"><div><h2>谁没来</h2><p class="hint">点名字标成缺席：大家不用给他打分，他也不进排名。点错了再点一下恢复。</p></div></div>
+      <div class="chips" id="absentChips"></div>
+    </section>
+
+    <section class="frame">
+      <div class="row-h">
+        <div><h2>公布名次</h2><p class="hint">公布后颁奖页显示名次，评委不能再改分。撤回公布就能继续打分。</p></div>
+        <div class="tools"><span class="state" id="finState"></span><button class="btn btn-sm" id="finalizeBtn"></button></div>
+      </div>
+      <div class="tools"><button class="btn btn-line btn-sm" id="exportBtn">导出 Excel（排名和每个人的分）</button></div>
+    </section>
+
+    <section class="frame print">
+      <details class="qrbox">
+        <summary><div class="row-h" style="margin-bottom:0"><div><h2>评委二维码</h2><p class="hint">每人一张，发给本人。线上参加的人点「复制链接」发微信。</p></div></div></summary>
+        <div class="tools" style="margin-top:14px"><button class="btn btn-line btn-sm" onclick="print()">打印全部</button></div>
+        <div class="qrs" id="qrs"></div>
+      </details>
+    </section>
+
+    <section class="frame danger">
+      <div class="row-h">
+        <div><h2>重新抽签</h2><p class="hint" id="drawHint">抽签页抽完就锁定了，别人打开也只能看结果。要重抽先在这里解锁。</p></div>
+        <button class="btn btn-danger btn-sm" id="unlockDraw">解锁重新抽签</button>
+      </div>
+      <div class="row-h" style="margin-bottom:0">
+        <div><h2>清空分数</h2><p class="hint">彩排完用。删掉所有人打的分，删了找不回来。</p></div>
+        <button class="btn btn-danger btn-sm" id="clearScores">清空所有分数</button>
+      </div>
+    </section>`;
+
+  document.getElementById('nextBtn').onclick = () => stepStage(1);
+  document.getElementById('prevBtn').onclick = () => stepStage(-1);
+  document.getElementById('clearStage').onclick = () => setStage('');
+  document.getElementById('finalizeBtn').onclick = toggleFinal;
+  document.getElementById('exportBtn').onclick = exportAll;
+  document.getElementById('clearScores').onclick = clearScores;
+  document.getElementById('unlockDraw').onclick = unlockDraw;
+  document.querySelector('details.qrbox').addEventListener('toggle', e => { if (e.target.open) drawQRs(); }, { once: true });
+
+  await refresh();
+  setInterval(refresh, 4000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+}
+
+let loading = false, again = false, qrKey = '', stageVer = 0, absentVer = 0;
+async function refresh() {
+  if (loading) { again = true; return; }
+  loading = true;
+  const v0 = stageVer, a0 = absentVer, localStage = SET.on_stage;
+  try {
+    const [all, s, set] = await Promise.all([getAllParticipants(), getScores(), getSettings()]);
+    if (stageVer !== v0) set.on_stage = SET.on_stage;   // 读的途中刚切过台上，以刚切的为准
+    if (absentVer !== a0) set.absent = SET.absent;      // 同理
+    const absent = parseAbsent(set.absent), staff = parseAbsent(set.staff);
+    [ALL, P, J, S, SET] = [all, all.filter(x => !absent.has(x.id) && !staff.has(x.id)), all.filter(x => !absent.has(x.id)), s, set];
+    paint();
+  } catch (e) { toast('网络断了，几秒后自动重试', false); }
+  loading = false;
+  if (again) { again = false; refresh(); }
+}
+
+/* 某位选手：谁打了、谁还没打（评委 = 所有到场的人：选手含他自己 + 工作人员） */
+function progressOf(t) {
+  const done = new Set(S.filter(s => s.target_id === t.id).map(s => s.judge_token));
+  const missing = byDrawOrder(J).filter(j => !done.has(j.token));
+  return { got: J.length - missing.length, total: J.length, missing };
+}
+function missText(t, missing) {
+  return missing.map(j => j.id === t.id ? `${j.name}（自己）` : j.name).join('、');
+}
+
+/* 内容没变就不重画，免得定时刷新把正在点的按钮换掉 */
+function setHTML(id, html) {
+  const el = document.getElementById(id);
+  if (el.__html === html) return false;
+  el.__html = html; el.innerHTML = html; return true;
+}
+
+function paint() {
+  const stage = P.find(p => p.id === +SET.on_stage);
+
+  // 现在台上
+  setHTML('stageWho', stage
+    ? `<span class="no foil">${stage.draw_order ? pad2(stage.draw_order) : ''}</span><span class="nm">${esc(stage.name)}</span>`
+    : `<span class="nm none">还没人上台。点「下一位」从 01 开始</span>`);
+  if (stage) {
+    const g = progressOf(stage);
+    const changed = setHTML('stageGot', `
+      <div class="line">
+        <span class="big">已打分<b>${g.got}</b><small>/ ${g.total}</small> 人</span>
+        ${g.missing.length ? `<button class="btn btn-ruby btn-sm" id="copyStage">复制催办消息</button>` : ''}
+      </div>
+      <div class="meter ${g.missing.length ? '' : 'full'}"><i style="width:${g.got / g.total * 100}%"></i></div>
+      <div class="missing">${g.missing.length ? `<span class="lbl">还没打（${g.missing.length} 人）</span>${esc(missText(stage, g.missing))}` : `<span class="ok">所有人都给 ${esc(stage.name)} 打分了</span>`}</div>`);
+    const btn = document.getElementById('copyStage');
+    if (changed && btn) btn.onclick = () => copyNudge(stage, progressOf(stage).missing);
+  } else setHTML('stageGot', '');
+
+  // 出场名单
+  const listChanged = setHTML('list', byDrawOrder(P).map(t => {
+    const g = progressOf(t), on = stage && stage.id === t.id;
+    return `<div class="item ${g.missing.length ? '' : 'full'} ${on ? 'on' : ''} ${openRow === t.id ? 'open' : ''}" data-id="${t.id}">
+      <div class="main">
+        <span class="n">${t.draw_order ? pad2(t.draw_order) : ''}</span>
+        <span class="name"><span>${esc(t.name)}</span>${on ? '<i class="tag">台上</i>' : ''}</span>
+        <span class="bar"><i style="width:${g.got / g.total * 100}%"></i></span>
+        <span class="c">${g.got}/${g.total}</span>
+        <button class="who-miss" ${g.missing.length ? '' : 'disabled'}>${g.missing.length ? `还差谁 ▾` : '齐了'}</button>
+        <button class="go" ${on ? 'disabled' : ''}>${on ? '在台上' : '让他上台'}</button>
+      </div>
+      <div class="more"><span>还没给 ${esc(t.name)} 打分：${esc(missText(t, g.missing))}</span><button class="btn btn-line btn-sm" data-copy>复制催办消息</button></div>
+    </div>`;
+  }).join(''));
+  if (listChanged) document.querySelectorAll('#list .item').forEach(el => {
+    const id = +el.dataset.id, t = P.find(p => p.id === id);
+    el.querySelector('.who-miss').onclick = () => { openRow = openRow === id ? null : id; paint(); };
+    el.querySelector('.go').onclick = () => setStage(id);
+    el.querySelector('[data-copy]').onclick = () => copyNudge(t, progressOf(t).missing);
+  });
+
+  // 谁没来
+  const absent = parseAbsent(SET.absent);
+  if (setHTML('absentChips', byDrawOrder(ALL).map(p =>
+    `<button class="chip ${absent.has(p.id) ? 'off' : ''}" data-id="${p.id}"><span class="num">${p.draw_order ? pad2(p.draw_order) : ''}</span>${esc(p.name)}${absent.has(p.id) ? '（缺席）' : ''}</button>`).join('')))
+    document.querySelectorAll('#absentChips .chip').forEach(c => { c.onclick = () => toggleAbsent(+c.dataset.id); });
+
+  // 抽签锁
+  const locked = SET.draw_done === 'true';
+  document.getElementById('unlockDraw').disabled = !locked;
+  document.getElementById('drawHint').textContent = locked
+    ? '抽签页抽完就锁定了，别人打开也只能看结果。要重抽先在这里解锁。'
+    : '已解锁：抽签页上有「开始抽签」按钮，点了要输口令。抽完会自动重新锁定。';
+
+  // 公布
+  const fin = SET.finalized === 'true';
+  document.getElementById('finState').textContent = fin ? '已公布' : '还没公布';
+  document.getElementById('finState').className = 'state' + (fin ? ' yes' : '');
+  document.getElementById('finalizeBtn').textContent = fin ? '撤回公布' : '公布名次';
+  document.getElementById('finalizeBtn').className = fin ? 'btn btn-line btn-sm' : 'btn btn-sm';
+
+  const key = ALL.map(p => `${p.id}:${p.name}:${p.token}`).join('|');
+  if (key !== qrKey && document.querySelector('details.qrbox').open) { qrKey = key; drawQRs(); }
+}
+
+async function copyNudge(t, missing) {
+  const text = `【给 ${t.name} 打分】还差 ${missing.length} 人：${missText(t, missing)}。请打开自己的打分页给 ${t.name} 打分，谢谢！`;
+  try { await navigator.clipboard.writeText(text); toast('已复制，去群里发'); }
+  catch (e) { prompt('复制下面这段：', text); }
+}
+
+async function setStage(id) {
+  const old = SET.on_stage;
+  stageVer++;
+  SET.on_stage = String(id); paint();
+  try { await setSetting('on_stage', id); }
+  catch (e) { stageVer++; SET.on_stage = old; paint(); toast('没切换成功，再点一次', false); }
+}
+function stepStage(d) {
+  const list = byDrawOrder(P);
+  const i = list.findIndex(p => p.id === +SET.on_stage);
+  const next = list[i < 0 ? (d > 0 ? 0 : list.length - 1) : Math.min(Math.max(i + d, 0), list.length - 1)];
+  if (next) setStage(next.id);
+}
+
+async function unlockDraw() {
+  if (!confirm('解锁后，抽签页会出现「开始抽签」按钮。重新抽会覆盖现在的出场顺序。确定解锁？')) return;
+  try { await setSetting('draw_done', 'false'); SET.draw_done = 'false'; paint(); toast('已解锁，去抽签页点「开始抽签」'); }
+  catch (e) { toast('没解锁成功，再点一次', false); }
+}
+
+async function toggleAbsent(id) {
+  const set = parseAbsent(SET.absent), name = (ALL.find(p => p.id === id) || {}).name;
+  if (set.has(id)) set.delete(id); else set.add(id);
+  const old = SET.absent, val = [...set].sort((a, b) => a - b).join(',');
+  absentVer++;
+  SET.absent = val;
+  try {
+    await setSetting('absent', val);
+    toast(set.has(id) ? `${name} 标记为缺席` : `${name} 恢复到场`);
+    refresh();
+  } catch (e) { absentVer++; SET.absent = old; paint(); toast('没改成功，再点一次', false); }
+}
+
+async function toggleFinal(e) {
+  const btn = e.currentTarget;
+  const on = SET.finalized === 'true';
+  if (!on) {
+    const lack = P.filter(t => progressOf(t).missing.length).length;
+    if (!confirm((lack ? `还有 ${lack} 位选手没收齐分数。\n` : '') + '公布后颁奖页会显示名次，评委不能再改分。确定公布？')) return;
+  }
+  btn.disabled = true;
+  try { await setSetting('finalized', on ? 'false' : 'true'); SET.finalized = on ? 'false' : 'true'; paint(); toast(on ? '已撤回' : '已公布，颁奖页开放'); }
+  catch (err) { toast('没成功，再点一次', false); }
+  btn.disabled = false;
+}
+
+async function clearScores() {
+  if (!confirm(`将删除全部 ${S.length} 个分数，删了找不回来。继续？`)) return;
+  if (prompt('确认清空，请输入「清空」两个字') !== '清空') return;
+  if (DEMO) return toast('彩排模式不会真的清空');
+  let error = null;
+  try { ({ error } = await cloud.database.from('scores').delete().gte('target_id', 0).select()); } catch (err) { error = err; }
+  if (error) return toast('没清空成功，再试一次', false);
+  toast('已清空'); refresh();
+}
+
+function loadXlsx() {
+  if (window.XLSX) return Promise.resolve();
+  return new Promise((ok, bad) => {
+    const s = document.createElement('script'); s.src = 'vendor/xlsx.full.min.js';
+    s.onload = ok; s.onerror = () => { s.remove(); bad(); }; document.head.appendChild(s);
+  });
+}
+async function exportAll() {
+  try { await loadXlsx(); } catch (e) { return toast('导出没成功，再点一次', false); }
+  const ranking = buildRanking(P, S, J);
+  const rankRows = ranking.map(r => ({
+    '名次': r.rank || '', '姓名': r.name, '出场顺序': r.draw_order || '',
+    '最终得分（去高去低平均）': r.avg ?? '', '票数': r.count,
+    '去掉的最高分': r.droppedMax ?? '', '去掉的最低分': r.droppedMin ?? '',
+  }));
+  const judges = byDrawOrder(J);
+  const matrix = byDrawOrder(P).map(t => {
+    const row = { '被评人': t.name };
+    judges.forEach(j => {
+      const s = S.find(x => x.judge_token === j.token && x.target_id === t.id);
+      row[j.name] = s ? s.score : '';
+    });
+    return row;
+  });
+  const order = byDrawOrder(P).map(p => ({ '出场顺序': p.draw_order || '', '姓名': p.name }));
+  const wb = XLSX.utils.book_new();
+  const ws1 = XLSX.utils.json_to_sheet(rankRows); ws1['!cols'] = [{ wch: 6 }, { wch: 14 }, { wch: 9 }, { wch: 22 }, { wch: 6 }, { wch: 12 }, { wch: 12 }];
+  XLSX.utils.book_append_sheet(wb, ws1, '排名');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(matrix), '分数明细（列=评委）');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(order), '出场顺序');
+  XLSX.writeFile(wb, '训练营排名与明细.xlsx');
+}
+
+/* 二维码卡片：画成一张带名字的图片，长按/右键就能保存 */
+async function drawQRs() {
+  try { await document.fonts.load('800 40px Board'); } catch (e) {}
+  const base = location.origin + location.pathname.replace(/[^/]*$/, '') + 'score.html';
+  const box = document.getElementById('qrs');
+  box.innerHTML = '';
+  byDrawOrder(ALL).forEach(p => {
+    const url = `${base}?token=${p.token}`;
+    const src = qrCard(p, url);
+    const el = document.createElement('div');
+    el.className = 'qr';
+    el.innerHTML = `<img src="${src}" alt="${esc(p.name)} 的打分二维码">
+      <div class="acts"><a href="${src}" download="打分二维码-${esc(p.name)}.png">下载</a><button data-url="${url}">复制链接</button><a href="${url}" target="_blank">打开</a></div>`;
+    el.querySelector('button').onclick = async e => {
+      try { await navigator.clipboard.writeText(e.target.dataset.url); toast('链接已复制'); } catch (err) { prompt('复制链接：', e.target.dataset.url); }
+    };
+    box.appendChild(el);
+  });
+}
+
+function qrCard(p, url) {
+  const W = 600, H = 800, cx = W / 2;
+  const IVORY = '#f6f0e3', PAPER = '#fbf8f1', INK = '#1b2220', INK2 = '#4a514c', GOLD = '#a17a35', EMERALD = '#0f5c4d';
+  const SANS = '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const c = cv.getContext('2d');
+  const spaced = (txt, x, y, gap) => {            // 字间距（老浏览器没有 letterSpacing）
+    const w = [...txt].reduce((s, ch) => s + c.measureText(ch).width, 0) + gap * ([...txt].length - 1);
+    let left = x - w / 2;
+    c.textAlign = 'left';
+    [...txt].forEach(ch => { c.fillText(ch, left, y); left += c.measureText(ch).width + gap; });
+    c.textAlign = 'center';
+  };
+  const diamond = (x, y, r, color) => { c.fillStyle = color; c.beginPath(); c.moveTo(x, y - r); c.lineTo(x + r, y); c.lineTo(x, y + r); c.lineTo(x - r, y); c.closePath(); c.fill(); };
+  const line = (x1, y1, x2, y2, color, w = 1) => { c.strokeStyle = color; c.lineWidth = w; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); };
+
+  // 底色 + 顶部放射金线
+  c.fillStyle = IVORY; c.fillRect(0, 0, W, H);
+  c.save(); c.beginPath(); c.rect(26, 26, W - 52, H - 52); c.clip();
+  for (let i = 0; i <= 24; i++) { const ang = Math.PI * i / 24; line(cx, 0, cx + Math.cos(ang) * 900, Math.sin(ang) * 900, 'rgba(161,122,53,.12)', 1); }
+  c.strokeStyle = 'rgba(161,122,53,.3)'; c.lineWidth = 1; c.beginPath(); c.arc(cx, 0, 120, 0, Math.PI); c.stroke();
+  c.restore();
+
+  // 双金线框 + 四角菱形
+  c.strokeStyle = GOLD; c.lineWidth = 2; c.strokeRect(16, 16, W - 32, H - 32);
+  c.strokeStyle = 'rgba(161,122,53,.55)'; c.lineWidth = 1; c.strokeRect(26.5, 26.5, W - 53, H - 53);
+  [[16, 16], [W - 16, 16], [16, H - 16], [W - 16, H - 16]].forEach(([x, y]) => diamond(x, y, 7, GOLD));
+
+  c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  c.fillStyle = GOLD; c.font = `600 20px ${SANS}`;
+  spaced('训练营路演 · 评委选票', cx, 82, 7);
+
+  // 名字：墨绿，太长就缩字号
+  let fs = 66; c.font = `800 ${fs}px ${SANS}`;
+  while (c.measureText(p.name).width + ([...p.name].length - 1) * 12 > W - 120 && fs > 34) { fs -= 2; c.font = `800 ${fs}px ${SANS}`; }
+  c.fillStyle = EMERALD; spaced(p.name, cx, 168, Math.round(fs * .18));
+
+  // 名字下方：金线 + 菱形（不放出场序号：二维码按人发，和抽签顺序无关）
+  const midY = 222;
+  line(64, midY, cx - 14, midY, 'rgba(161,122,53,.6)'); line(cx + 14, midY, W - 64, midY, 'rgba(161,122,53,.6)');
+  diamond(cx, midY, 6, GOLD);
+
+  // 二维码：纸色底 + 细金框
+  const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+  const n = qr.getModuleCount(), box = 420, top = 268, left = cx - box / 2;
+  c.fillStyle = PAPER; c.fillRect(left, top, box, box);
+  c.strokeStyle = 'rgba(161,122,53,.6)'; c.lineWidth = 1; c.strokeRect(left + .5, top + .5, box - 1, box - 1);
+  const cell = Math.floor((box - 40) / n), qs = cell * n, ox = left + (box - qs) / 2, oy = top + (box - qs) / 2;
+  c.fillStyle = INK;
+  for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (qr.isDark(r, k)) c.fillRect(ox + k * cell, oy + r * cell, cell, cell);
+
+  // 底部规则
+  const by = top + box + 46;
+  c.font = `700 24px ${SANS}`; c.fillStyle = INK;
+  const r1 = '6 分及格', r2 = '10 分最好', w1 = c.measureText(r1).width, w2 = c.measureText(r2).width, gapW = 44;
+  const sx = cx - (w1 + gapW + w2) / 2;
+  c.textAlign = 'left';
+  c.fillStyle = EMERALD; c.fillText(r1, sx, by);
+  diamond(sx + w1 + gapW / 2, by - 8, 5, GOLD);
+  c.fillStyle = GOLD; c.fillText(r2, sx + w1 + gapW, by);
+  c.textAlign = 'center';
+  c.fillStyle = INK2; c.font = `500 17px ${SANS}`;
+  spaced('本人专用 请勿转发', cx, by + 38, 4);
+  return cv.toDataURL('image/png');
+}
+
+gate();
+</script>
+</body>
+</html>

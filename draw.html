@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f6f0e3">
+<title>出场顺序 · 抽签</title>
+<link rel="stylesheet" href="theme.css?v=8">
+<style>
+  .wrap { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; padding: 50px 96px 34px; }
+  .head { text-align: center; }
+  .head h1 { font-size: 64px; margin-top: 12px; }
+  .head .divider { width: 360px; margin: 18px auto 0; }
+
+  .board {
+    --gap: 26px;
+    --cw: min(calc((100vw - 192px - 5 * var(--gap)) / 6), calc(((100vh - 330px) / 3 - var(--gap)) * 1.25));
+    --ch: calc(var(--cw) * .8);
+    flex: 1; width: 100%; display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: var(--gap);
+    margin: 22px 0 18px;
+  }
+  .card { position: relative; width: var(--cw); height: var(--ch); perspective: 1400px; }
+  .card .inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .7s var(--ease); }
+  .card.down .inner { transform: rotateY(180deg); }
+  .card.slow .inner { transition-duration: 1.1s; }
+  .card .face { position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--ch) * .06); }
+  .card .face.frame { position: absolute; }
+  .card .back { transform: rotateY(180deg);
+    background-color: var(--paper);
+    background-image: repeating-linear-gradient(45deg, transparent 0 15px, var(--gold-faint) 15px 16px),
+                      repeating-linear-gradient(-45deg, transparent 0 15px, var(--gold-faint) 15px 16px); }
+  .card .back i { width: calc(var(--ch) * .26); height: calc(var(--ch) * .26); transform: rotate(45deg);
+    border: 1.5px solid var(--gold); display: grid; place-items: center; background: var(--paper); }
+  .card .back i::after { content: ''; width: 46%; height: 46%; background: var(--gold); }
+
+  .card .no { font-family: var(--num); font-weight: 900; font-size: calc(var(--ch) * .4); line-height: .9; }
+  .card .wait { font-size: calc(var(--ch) * .075); letter-spacing: .4em; text-indent: .4em; color: var(--gold); font-weight: 600; }
+  .card .name { font-size: calc(var(--ch) * .16); font-weight: 800; letter-spacing: .12em; text-indent: .12em; white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
+  .card .front.gem { border-color: var(--gold-hi); color: var(--ivory); }
+  .card .front.gem::after { border-color: rgba(233, 196, 120, .8); inset: 8px; }
+
+  .foot { display: flex; align-items: center; gap: 14px; }
+  .status { font-size: 14px; letter-spacing: .2em; color: var(--ink-3); min-width: 1px; margin-right: 6px; }
+
+  @media (max-width: 860px) {
+    .wrap { padding: 64px 16px 32px; }
+    .head h1 { font-size: 40px; }
+    .head .divider { width: 220px; }
+    .board { --gap: 10px; --cw: calc((100vw - 32px - 2 * var(--gap)) / 3); flex: none; }
+    .foot { flex-wrap: wrap; justify-content: center; }
+    .status { width: 100%; text-align: center; margin: 0; }
+  }
+</style>
+</head>
+<body class="corners">
+<div class="rays"></div>
+<nav class="topbar"><a href="index.html">首页</a><span id="count"></span></nav>
+<main class="wrap">
+  <div class="head">
+    <div class="eyebrow">训练营路演 · 抽签</div>
+    <h1 class="title-deco">出场顺序</h1>
+    <div class="divider"><i></i></div>
+  </div>
+  <div class="board" id="board"></div>
+  <div class="foot">
+    <span class="status" id="status"></span>
+    <button class="btn btn-line" id="exportBtn" hidden>导出 Excel</button>
+    <button class="btn" id="drawBtn" disabled>开始抽签</button>
+  </div>
+</main>
+<script src="vendor/workbuddy-cloud-sdk.js"></script>
+<script src="cloud.js?v=8"></script>
+<script src="deco.js?v=8"></script>
+<script>
+const board = document.getElementById('board');
+const statusEl = document.getElementById('status');
+const drawBtn = document.getElementById('drawBtn');
+const exportBtn = document.getElementById('exportBtn');
+const GEMS = ['emerald', 'sapphire', 'ruby'];
+const wait = ms => new Promise(r => setTimeout(r, ms));
+let participants = [];
+
+function cardHTML() {
+  return `<div class="card"><div class="inner">
+    <div class="face front frame"></div>
+    <div class="face back frame"><i></i></div>
+  </div></div>`;
+}
+
+function setFront(card, p, i) {
+  const f = card.querySelector('.front');
+  f.className = 'face front frame' + (i !== null && i < 3 ? ' gem ' + GEMS[i] : '');
+  f.innerHTML = !p ? ''
+    : i === null ? `<span class="wait">待抽</span><span class="name">${esc(p.name)}</span>`
+    : `<span class="no ${i < 3 ? 'foil-light' : 'foil'}">${pad2(i + 1)}</span><span class="name">${esc(p.name)}</span>`;
+}
+
+function paint(drawn) {
+  const list = drawn ? byDrawOrder(participants) : participants.slice().sort((a, b) => a.id - b.id);
+  board.innerHTML = list.map(cardHTML).join('');
+  [...board.children].forEach((c, i) => setFront(c, list[i], drawn ? i : null));
+}
+
+/* 抽完就锁定：按钮消失，谁打开这页都只能看结果。要重抽，到后台「解锁重新抽签」 */
+function setDrawn(drawn) {
+  drawBtn.hidden = drawn;
+  drawBtn.textContent = '开始抽签';
+  drawBtn.className = 'btn';
+  exportBtn.hidden = !drawn;
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* 位置互换：记下旧位置 → 换 DOM 顺序 → 从旧位置滑到新位置 */
+function moveRound(ms) {
+  const cards = [...board.children];
+  const first = new Map(cards.map(c => [c, c.getBoundingClientRect()]));
+  shuffle(cards).forEach(c => board.appendChild(c));
+  return Promise.all([wait(ms), ...cards.map(c => {
+    const a = first.get(c), b = c.getBoundingClientRect();
+    const dx = a.left - b.left, dy = a.top - b.top;
+    if (!dx && !dy) return null;
+    c.style.zIndex = 1 + ((Math.random() * 20) | 0);
+    const anim = c.animate([
+      { transform: `translate(${dx}px, ${dy}px)` },
+      { transform: `translate(${dx / 2}px, ${dy / 2}px) scale(1.06)`, offset: .5 },
+      { transform: 'none' }
+    ], { duration: ms, easing: 'cubic-bezier(.45, 0, .25, 1)' });
+    // 页面切到后台时动画会暂停，用定时器兜底，免得抽签卡在半路
+    return Promise.race([anim.finished, wait(ms + 200)]).then(() => { c.style.zIndex = ''; });
+  })]);
+}
+
+async function load() {
+  try {
+    const [ps, settings] = await Promise.all([getParticipants(), getSettings()]);
+    participants = ps;
+    document.getElementById('count').textContent = `${ps.length} 人`;
+    const drawn = settings.draw_done === 'true' && ps.some(p => p.draw_order);
+    paint(drawn);
+    setDrawn(drawn);
+    drawBtn.disabled = ps.length < 2;
+    if (ps.length < 2) statusEl.textContent = '名单不到 2 人，没法抽';
+  } catch (e) {
+    statusEl.textContent = '连不上数据库，刷新试试';
+  }
+}
+
+let busy = false, lastDone = null;
+drawBtn.onclick = async () => {
+  if (busy || !(await askPass())) return;
+  busy = true;
+
+  drawBtn.disabled = true; exportBtn.hidden = true;
+  statusEl.textContent = '洗牌中';
+  const cards = [...board.children];
+
+  // 名字全部扣下
+  cards.forEach((c, i) => setTimeout(() => c.classList.add('down'), i * 30));
+  await wait(cards.length * 30 + 750);
+  cards.forEach(c => { c.classList.remove('slow'); setFront(c, null, null); });
+
+  // 同时把结果写进数据库，写成功才揭晓
+  const order = shuffle(participants.map(p => p.id));
+  participants.forEach(p => { p.draw_order = order.indexOf(p.id) + 1; });
+  let saved = null;
+  const save = (async () => {
+    await setSetting('draw_done', 'false');
+    // 缺席的人不参加抽签，清掉他旧的序号，免得和别人重号
+    const present = new Set(participants.map(p => p.id));
+    const away = DEMO ? [] : (await getAllParticipants()).filter(p => !present.has(p.id));
+    const results = DEMO ? [] : await Promise.all([
+      ...participants.map(p => cloud.database.from('participants').update({ draw_order: p.draw_order }).eq('id', p.id).select()),
+      ...away.map(p => cloud.database.from('participants').update({ draw_order: null }).eq('id', p.id).select())]);
+    const bad = results.find(r => r.error);
+    if (bad) throw bad.error;
+    await setSetting('draw_done', 'true');
+  })().then(() => { saved = true; }, () => { saved = false; });
+
+  // 先快：写库没回来就一直换
+  let rounds = 0;
+  while (rounds < 5 || saved === null) { await moveRound(240); rounds++; }
+  if (!saved) {
+    statusEl.textContent = '没存上，请检查网络后再抽一次';
+    busy = false;
+    return load();
+  }
+  // 后慢
+  for (const ms of [320, 420, 560, 760]) await moveRound(ms);
+  statusEl.textContent = '';
+  await wait(300);
+
+  // 从 01 开始依次翻面
+  const list = byDrawOrder(participants);
+  const placed = [...board.children];
+  for (let i = 0; i < placed.length; i++) {
+    const c = placed[i];
+    setFront(c, list[i], i);
+    if (i < 3) c.classList.add('slow');
+    c.classList.remove('down');
+    c.animate([{ transform: 'none' }, { transform: 'scale(1.08)' }, { transform: 'none' }],
+      { duration: i < 3 ? 1100 : 700, easing: 'ease-in-out' });
+    await wait(i < 3 ? 1150 : 300);
+  }
+  statusEl.textContent = DEMO ? '彩排模式，没存' : '已保存，顺序已锁定';
+  setDrawn(true);
+  drawBtn.disabled = false;
+  busy = false; lastDone = 'true';
+};
+
+// 后台解锁 / 别处抽完时，这页自己跟着变（抽签动画进行中不打扰）
+setInterval(async () => {
+  if (busy || DEMO) return;
+  try {
+    const v = (await getSettings()).draw_done || '';
+    if (lastDone !== null && v !== lastDone) load();
+    lastDone = v;
+  } catch (e) {}
+}, 4000);
+
+// Excel 库较大，按需加载
+let xlsxP = null;
+function loadXlsx() {
+  if (window.XLSX) return Promise.resolve();
+  return xlsxP || (xlsxP = new Promise((ok, bad) => {
+    const s = document.createElement('script'); s.src = 'vendor/xlsx.full.min.js';
+    s.onload = ok; s.onerror = () => { xlsxP = null; s.remove(); bad(); }; document.head.appendChild(s);
+  }));
+}
+exportBtn.onclick = async () => {
+  try { await loadXlsx(); } catch (e) { return toast('导出没成功，再点一次', false); }
+  const rows = byDrawOrder(participants).map(p => ({ '出场顺序': p.draw_order, '姓名': p.name }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{ wch: 10 }, { wch: 16 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '出场顺序');
+  XLSX.writeFile(wb, '训练营出场顺序.xlsx');
+};
+
+load();
+</script>
+</body>
+</html>

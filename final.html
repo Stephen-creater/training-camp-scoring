@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f6f0e3">
+<title>颁奖</title>
+<link rel="stylesheet" href="theme.css?v=8">
+<style>
+  body { cursor: default; overflow: hidden; }
+  .rays { width: 1960px; height: 1300px; transition: opacity 1s; }
+  .rays .spin > g { transition: stroke 1.2s, stroke-width 1.2s; }
+  .rays.warm .spin > g { stroke: rgba(161, 122, 53, .24); }
+  .rays.bright .spin > g { stroke: rgba(161, 122, 53, .5); stroke-width: 1.8; }
+
+  .wrap { height: 100vh; height: 100dvh; display: flex; flex-direction: column; align-items: center; padding: 4.2vh 48px 3vh; }
+  .hd { text-align: center; flex: none; }
+  .hd .eyebrow { display: block; }
+  .hd h1 { font-size: clamp(40px, 6.4vh, 76px); margin-top: 1.4vh; }
+  .hd .divider { width: 260px; margin: 1.6vh auto 0; }
+
+  /* 拱门 */
+  .arches { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4.5vh; width: 100%; padding-top: 2vh; }
+  .arches .inner { display: flex; align-items: flex-end; gap: 34px; }
+  .arch {
+    --h: 41vh; height: var(--h); width: calc(var(--h) * .78); flex: none;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: calc(var(--h) * .1) 14px calc(var(--h) * .04); transform-origin: 50% 100%;
+    transition: height .9s var(--ease), width .9s var(--ease), background-color 1s, box-shadow 1s, scale .9s var(--spring);
+    animation: rise 1.3s var(--ease) both;
+  }
+  .arch.p1 { --h: 50vh; animation-delay: .25s; }
+  .arch.p2 { animation-delay: .45s; }
+  .arch.p3 { animation-delay: .6s; }
+  @keyframes rise { from { transform: translateY(75vh); opacity: 0; } 30% { opacity: 1; } }
+  .arch:not(.lit) { background-color: var(--paper); box-shadow: inset 0 0 0 1.5px var(--gold-soft), 0 20px 50px -40px rgba(27, 34, 32, .3); }
+  .arch::after { clip-path: inset(100% 0 0 0); transition: clip-path 1.4s .25s var(--ease); }
+  .arch.lit::after { clip-path: inset(0 0 0 0); }
+  .arch.lit { box-shadow: 0 30px 70px -36px rgba(27, 34, 32, .55); }
+  .arch.p1.lit { box-shadow: 0 0 0 1px var(--gold-soft), 0 40px 90px -30px rgba(15, 92, 77, .6); }
+  .arch.crown { scale: 1.06; }
+  .arch.hidden { visibility: hidden; }
+
+  .arch .rk { font-family: var(--num); font-weight: 900; line-height: .9; font-size: calc(var(--h) * .34); transition: font-size .9s var(--ease); }
+  .arch:not(.lit) .rk { background: var(--foil-dark); -webkit-background-clip: text; background-clip: text; color: transparent; opacity: .75; }
+  .arch.lit .rk { background: var(--foil-light); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .arch .tt { font-size: 13px; letter-spacing: .4em; text-indent: .4em; margin-top: calc(var(--h) * .03); color: var(--gold); opacity: .8; transition: color 1s; }
+  .arch.lit .tt { color: var(--gold-hi); }
+  .arch .nm { font-weight: 800; font-size: calc(var(--h) * .1); line-height: 1.15; margin-top: calc(var(--h) * .03); min-height: 1.15em; letter-spacing: .06em; word-break: break-all; transition: font-size .9s var(--ease); }
+  .arch.p1 .nm { font-size: calc(var(--h) * .12); }
+  .arch.multi .nm, .arch.p1.multi .nm { font-size: calc(var(--h) * .07); }
+  .arch .sc { font-family: var(--num); font-weight: 800; font-size: calc(var(--h) * .085); color: var(--gold-hi); margin-top: calc(var(--h) * .015); min-height: 1em; line-height: 1; opacity: 0; transition: opacity .6s, font-size .9s var(--ease); }
+  .arch.lit .sc.on { opacity: 1; }
+  .ch { display: inline-block; animation: chIn .9s var(--ease) both; }
+  @keyframes chIn { from { opacity: 0; transform: translateY(.6em); filter: blur(10px); } }
+
+  .hint { flex: none; display: flex; align-items: center; font-size: 15px; letter-spacing: .4em; text-indent: .4em; color: var(--gold); transition: opacity .4s; animation: fade 1s 1.6s both; }
+
+  /* 4–17 名 */
+  .rest { flex: none; display: none; width: 100%; max-width: 1320px; grid-auto-flow: column; column-gap: 96px; margin-top: 3.4vh; }
+  body.done .rest { display: grid; }
+  body.done .arch { --h: 30vh; }
+  body.done .arch.p1 { --h: 36vh; }
+  body.done .hint { display: none; }
+  body.done .arches { flex: none; padding-top: 3.4vh; }
+  .li { display: grid; grid-template-columns: 2.6em 1fr auto; align-items: baseline; padding: .95vh 0; border-bottom: 1px solid var(--gold-soft);
+    font-size: clamp(16px, 2.3vh, 26px); font-weight: 600; animation: liIn .8s var(--ease) both; }
+  .li .r { font-family: var(--num); font-weight: 800; }
+  .li .s { font-family: var(--num); font-weight: 800; font-size: 1.15em; }
+  @keyframes liIn { from { opacity: 0; transform: translateY(14px); } }
+
+  .dim { position: fixed; inset: 0; z-index: 50; background: var(--ink); opacity: 0; pointer-events: none; }
+
+  .skip { position: fixed; right: 32px; bottom: 22px; z-index: 30; background: none; border: 0; cursor: pointer; font-size: 13px; letter-spacing: .24em; color: var(--gold); opacity: .8; }
+  .skip:hover { opacity: 1; color: var(--ink); }
+
+  .locked { margin: auto; padding: 56px 64px; text-align: center; max-width: 560px; }
+  .locked h1 { font-size: clamp(28px, 4vw, 46px); margin: 18px 0 22px; }
+  .locked p { color: var(--ink-2); font-size: 15px; line-height: 1.8; margin-top: 20px; }
+
+  .instant .arch, .instant .hint { animation: none; }
+
+  @media (max-width: 760px) {
+    body { overflow: auto; }
+    .rays { width: 1600px; height: 1200px; }
+    .topbar { padding: 16px 18px; }
+    .wrap { height: auto; min-height: 100vh; min-height: 100dvh; padding: 64px 16px 64px; }
+    .hd h1 { font-size: 40px; margin-top: 10px; }
+    .hd .divider { width: 180px; margin-top: 14px; }
+    .arches { flex: none; margin-top: 40px; padding-top: 0; gap: 0; }
+    .arches .inner { gap: 1.6vw; }
+    .arch, body.done .arch { --h: 48vw; width: 28vw; padding: calc(var(--h) * .16) 4px 0; }
+    .arch.p1, body.done .arch.p1 { --h: 60vw; width: 33vw; }
+    .arch::after { inset: 5px; }
+    .arch .tt { font-size: 10px; letter-spacing: .2em; text-indent: .2em; }
+    .arch .nm, .arch.p1 .nm { font-size: 4.2vw; letter-spacing: 0; }
+    .arch.p1 .nm { font-size: 4.8vw; }
+    .arch .sc { font-size: 4.4vw; }
+    .arch.crown { scale: 1.04; }
+    .hint { height: auto; margin-top: 28px; font-size: 13px; letter-spacing: .3em; }
+    .rest, body.done .rest { grid-auto-flow: row; grid-template-rows: none !important; margin-top: 36px; }
+    .li { font-size: 16px; padding: 11px 0; }
+    .skip { right: 16px; bottom: 14px; }
+    .locked { padding: 40px 24px; }
+  }
+  .bgm { position: fixed; left: 32px; bottom: 20px; z-index: 30; display: flex; align-items: center; gap: 16px; font-size: 11px; letter-spacing: .06em; color: var(--ink-3); }
+  .bgm-btn { background: none; border: 0; cursor: pointer; font-size: 13px; letter-spacing: .2em; color: var(--gold); padding: 4px 0; }
+  @media (max-width: 760px) { .bgm { left: 16px; bottom: 12px; } .bgm span { display: none; } }
+</style>
+</head>
+<body>
+<div class="rays" id="rays"></div>
+<nav class="topbar"><a href="index.html">首页</a><a href="rank.html">排名明细</a></nav>
+<main class="wrap" id="app"></main>
+<div class="dim" id="dim"></div>
+<script src="vendor/workbuddy-cloud-sdk.js"></script>
+<script src="cloud.js?v=8"></script>
+<script src="deco.js?v=8"></script>
+<script>
+const app = document.getElementById('app');
+const TITLES = { 1: '冠军', 2: '亚军', 3: '季军' };
+const GEM = { 1: 'emerald', 2: 'sapphire', 3: 'ruby' };
+const SHOW_ALL = new URLSearchParams(location.search).has('all');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* 放射金线：补成整圆后缓慢转动，冠军时加速 */
+const raysEl = document.getElementById('rays');
+let spin = null;
+(function setupRays() {
+  const svg = raysEl.querySelector('svg');
+  const g = svg.querySelector('g');
+  const wrap = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  wrap.setAttribute('class', 'spin');
+  wrap.style.transformOrigin = '800px 0px';
+  const mirror = g.cloneNode(true);
+  mirror.setAttribute('transform', 'rotate(180 800 0)');
+  svg.insertBefore(wrap, g);
+  wrap.append(g, mirror);
+  if (!reduce) spin = wrap.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], { duration: 360000, iterations: Infinity });
+})();
+
+function locked(title, text) {
+  app.innerHTML = `<div class="frame locked"><span class="eyebrow">训练营路演</span><h1 class="title-deco">${title}</h1><div class="divider"><i></i></div><p>${text}</p></div>`;
+}
+
+(async () => {
+  const settings = await getSettings();
+  if (settings.finalized !== 'true') {
+    locked('名次还没公布', '后台点「公布名次」后，这页会自己打开。');
+    // 大屏可能提前开着：每 5 秒看一眼，公布了就自动进入
+    const t = setInterval(async () => {
+      try { if ((await getSettings()).finalized === 'true') { clearInterval(t); location.reload(); } } catch (e) {}
+    }, 5000);
+    return;
+  }
+  const [ps, ss] = await Promise.all([getParticipants(), getScores()]);
+  const ranking = buildRanking(ps, ss).filter(r => r.avg !== null);
+  if (!ranking.length) { locked('还没有分数', '有人打分后再来。'); return; }
+  // 按名次分组：并列的人站同一座拱门；没有该名次（例如并列冠军后没有亚军）就不出现
+  const groups = { 1: [], 2: [], 3: [] };
+  ranking.forEach(r => { if (r.rank <= 3) groups[r.rank].push(r); });
+  const rest = ranking.filter(r => r.rank > 3);
+  const order = [3, 2, 1].filter(pl => groups[pl].length);
+  const title = pl => TITLES[pl] + (groups[pl].length > 1 ? '（并列）' : '');
+
+  if (SHOW_ALL) app.classList.add('instant');
+
+  // 背景音乐：只在颁奖页。先尝试直接播放；浏览器不允许自动出声时，第一次点击（揭晓）时渐入
+  const bgm = new Audio('assets/bgm.m4a');
+  bgm.loop = true; bgm.volume = 0;
+  let bgmOn = true;
+  const fadeTo = (v, ms = 1800) => {
+    const from = bgm.volume, t0 = performance.now();
+    (function f(t) { const k = Math.min(1, (t - t0) / ms); bgm.volume = from + (v - from) * k; if (k < 1) requestAnimationFrame(f); })(t0);
+  };
+  const startBgm = () => { if (bgmOn && bgm.paused) bgm.play().then(() => fadeTo(.35)).catch(() => {}); };
+  startBgm();
+  document.addEventListener('pointerdown', startBgm);
+  document.addEventListener('keydown', startBgm);
+  const bgmBox = document.createElement('div');
+  bgmBox.className = 'bgm';
+  bgmBox.innerHTML = `<span>音乐：Heroic Age — Kevin MacLeod（incompetech.com）· CC BY 4.0</span><button class="bgm-btn" type="button">关闭音乐</button>`;
+  document.body.appendChild(bgmBox);
+  bgmBox.querySelector('button').onclick = e => {
+    bgmOn = !bgmOn;
+    e.target.textContent = bgmOn ? '关闭音乐' : '打开音乐';
+    if (bgmOn) startBgm(); else { fadeTo(0, 600); setTimeout(() => bgm.pause(), 650); }
+  };
+  app.innerHTML = `
+    <header class="hd"><span class="eyebrow">训练营路演 · 最终名次</span><h1 class="title-deco">颁奖</h1><div class="divider"><i></i></div></header>
+    <section class="arches"><div class="inner">
+      ${[2, 1, 3].map(pl => `
+        <div class="arch ${GEM[pl]} p${pl}${groups[pl].length ? '' : ' hidden'}${groups[pl].length > 1 ? ' multi' : ''}" id="arch${pl}">
+          <div class="rk">${pl}</div>
+          <div class="tt">${title(pl)}</div>
+          <div class="nm"></div>
+          <div class="sc num">0.00</div>
+        </div>`).join('')}
+    </div>
+    <div class="hint" id="hint">${'点击揭晓' + TITLES[order[0]]}</div></section>
+    <section class="rest" id="rest" style="grid-template-rows: repeat(${Math.ceil(rest.length / 2)}, auto)">${rest.map((r, i) => `
+      <div class="li" style="animation-delay:${(SHOW_ALL ? 0 : .5) + i * .05}s"><span class="r foil">${pad2(r.rank)}</span><span>${esc(r.name)}</span><span class="s">${r.avg.toFixed(2)}</span></div>`).join('')}</section>
+    <button class="skip" id="skip">直接看全部</button>`;
+
+  let step = 0, busy = false;
+  const hint = document.getElementById('hint');
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  function fillName(el, name, fast) {
+    const per = fast ? 40 : 160;
+    el.innerHTML = Array.from(name).map((c, i) =>
+      `<span class="ch" style="animation-delay:${i * per}ms">${c === ' ' ? '&nbsp;' : esc(c)}</span>`).join('');
+    return Array.from(name).length * per + 900;
+  }
+
+  function lightUp(pl, fast) {
+    const arch = document.getElementById('arch' + pl), g = groups[pl], r = g[0];
+    arch.classList.add('lit');
+    const t = fillName(arch.querySelector('.nm'), g.map(x => x.name).join(' · '), fast);
+    const sc = arch.querySelector('.sc');
+    setTimeout(() => { sc.classList.add('on'); countTo(sc, r.avg, { ms: fast ? 500 : (pl === 1 ? 2200 : 1500) }); }, fast ? 100 : 500);
+    return t;
+  }
+
+  async function champion() {
+    if (bgmOn && !bgm.paused) { fadeTo(.5, 1200); setTimeout(() => fadeTo(.35, 3000), 7000); }   // 冠军时音乐推高一点
+    const dim = document.getElementById('dim');
+    if (!reduce) {
+      dim.animate([{ opacity: 0 }, { opacity: .88 }], { duration: 500, easing: 'ease-in', fill: 'forwards' });
+      await wait(850);
+    }
+    const arch = document.getElementById('arch1');
+    arch.classList.add('crown');
+    raysEl.classList.add('bright');
+    const t = lightUp(1, false);
+    if (!reduce) dim.animate([{ opacity: .88 }, { opacity: 0 }], { duration: 900, easing: 'ease-out', fill: 'forwards' });
+    if (spin) { spin.updatePlaybackRate(60); setTimeout(() => spin.updatePlaybackRate(14), 1600); setTimeout(() => spin.updatePlaybackRate(1), 3600); }
+    setTimeout(() => confetti({ count: 240 }), 300);
+    setTimeout(() => { raysEl.classList.remove('bright'); raysEl.classList.add('warm'); }, 4200);
+    await wait(Math.max(t, 2400));
+  }
+
+  function finish() {
+    hint.textContent = '';
+    document.body.classList.add('done');
+    const skip = document.getElementById('skip');
+    if (skip) skip.remove();
+  }
+
+  async function next(fast) {
+    if (busy || step >= order.length) return;
+    busy = true;
+    const pl = order[step++];
+    hint.style.opacity = 0;
+    if (pl === 1 && !fast) await champion();
+    else {
+      if (pl === 1) { document.getElementById('arch1').classList.add('crown'); raysEl.classList.add('warm'); }
+      await wait(fast ? 0 : lightUp(pl, fast));
+      if (fast) lightUp(pl, true);
+    }
+    const left = order.slice(step);
+    if (left.length) { hint.textContent = '再点一下，揭晓' + TITLES[left[0]]; hint.style.opacity = 1; }
+    else { if (!fast) await wait(600); finish(); }
+    busy = false;
+  }
+
+  document.addEventListener('click', e => { if (!e.target.closest('a, .skip, .bgm')) next(); });
+  document.addEventListener('keydown', e => { if ([' ', 'Enter', 'ArrowRight'].includes(e.key)) { e.preventDefault(); next(); } });
+  document.getElementById('skip').onclick = async () => {
+    while (busy) await wait(50);
+    while (step < order.length) await next(true);
+  };
+  if (SHOW_ALL) document.getElementById('skip').click();
+})().catch(() => locked('没加载出来', '网络不稳，刷新一下试试。'));
+</script>
+</body>
+</html>
