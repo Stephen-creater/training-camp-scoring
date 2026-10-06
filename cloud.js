@@ -79,10 +79,14 @@ async function getScores() {
 }
 
 async function getSettings() {
-  if (DEMO) { const q = new URLSearchParams(location.search); return { draw_done: 'true', finalized: 'true', on_stage: '3', absent: q.get('absent') || '', staff: q.get('staff') || '' }; }
   const rows = unwrap(await cloud.database.from('settings').select('key, value'));
   const map = {};
   (rows || []).forEach(r => { map[r.key] = r.value; });
+  if (DEMO) {   // 彩排：名单（缺席、工作人员）用真实的，其余用假的；网址参数可以覆盖
+    const q = new URLSearchParams(location.search);
+    return { draw_done: 'true', finalized: 'true', on_stage: q.get('stage') || '3',
+      absent: q.has('absent') ? q.get('absent') : (map.absent || ''), staff: q.has('staff') ? q.get('staff') : (map.staff || '') };
+  }
   return map;
 }
 

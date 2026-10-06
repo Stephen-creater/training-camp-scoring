@@ -4,210 +4,116 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#f6f0e3">
-<title>实时排名</title>
-<link rel="stylesheet" href="theme.css?v=8">
+<title>现场大屏</title>
+<link rel="stylesheet" href="theme.css?v=10">
 <style>
-  .wrap { max-width: 1640px; margin: 0 auto; padding: 44px 64px 28px; min-height: 100vh; display: flex; flex-direction: column; }
-  .head { text-align: center; position: relative; }
-  .head h1 { font-size: clamp(44px, 4.6vw, 76px); margin-top: 12px; }
-  .rule { margin: 14px auto 0; font-size: 13px; color: var(--ink-3); letter-spacing: .14em; }
-  .rule a { color: var(--emerald); font-weight: 700; margin-left: 12px; text-decoration: none; display: inline-block; white-space: nowrap; }
-  .err { color: var(--ruby); }
+  /* 现场大屏：只显示谁在台上、打分进度、出场顺序。不显示任何分数和名次（名次留到颁奖揭晓） */
+  .wrap { max-width: 1640px; margin: 0 auto; padding: 56px 64px 36px; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+  .hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2vh 0; }
+  .hero .eyebrow { font-size: 18px; letter-spacing: .6em; text-indent: .6em; }
+  .who { display: flex; align-items: baseline; justify-content: center; gap: 36px; margin-top: 3vh; max-width: 100%; }
+  .who .no { font-family: var(--num); font-weight: 900; font-size: clamp(90px, 10vw, 190px); line-height: .9; }
+  .who .nm { font-size: clamp(110px, 13vw, 240px); font-weight: 900; letter-spacing: .08em; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .who.idle .nm { font-size: clamp(56px, 6vw, 104px); letter-spacing: .2em; }
+  .who.swap { animation: rise .8s var(--ease); }
+  @keyframes rise { from { opacity: 0; transform: translateY(24px); filter: blur(8px); } }
+  .hero .divider { width: min(560px, 60%); margin: 4vh auto 0; }
+  .got { margin-top: 3vh; display: flex; align-items: baseline; gap: 14px; font-size: 30px; font-weight: 700; letter-spacing: .1em; }
+  .got b { font-family: var(--num); font-size: clamp(64px, 6vw, 104px); font-weight: 900; color: var(--emerald); line-height: 1; letter-spacing: 0; }
+  .got small { font-family: var(--num); font-size: 48px; font-weight: 800; color: var(--ink-3); letter-spacing: 0; }
+  .meter { width: min(820px, 80%); height: 8px; background: var(--gold-faint); border-radius: 4px; overflow: hidden; margin-top: 2.4vh; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--gold); transition: width .6s var(--ease); }
+  .meter.full i { background: var(--emerald); }
+  .next { margin-top: 2.4vh; font-size: 22px; letter-spacing: .2em; color: var(--ink-2); min-height: 1.5em; }
+  .next b { color: var(--ink); }
 
-  /* 现在台上：全场最醒目 */
-  .stage-bar { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 32px;
-    background: var(--emerald); color: var(--ivory); padding: 26px 48px; margin-bottom: 18px;
-    box-shadow: inset 0 0 0 4px var(--emerald), inset 0 0 0 5px var(--gold-hi), 0 24px 40px -28px rgba(15, 92, 77, .6); }
-  .stage-bar .k { display: block; font-size: 16px; font-weight: 700; letter-spacing: .5em; color: var(--gold-hi); margin-bottom: 10px; }
-  .stage-bar .who { display: flex; align-items: baseline; gap: 26px; min-width: 0; }
-  .stage-bar .no { font-family: var(--num); font-weight: 900; font-size: clamp(56px, 6vw, 104px); line-height: .9; }
-  .stage-bar .nm { font-size: clamp(64px, 7.2vw, 128px); font-weight: 900; letter-spacing: .08em; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .stage-bar .got { text-align: right; white-space: nowrap; }
-  .stage-bar .got .v { font-size: 26px; font-weight: 700; }
-  .stage-bar .got b { font-family: var(--num); font-size: clamp(56px, 5vw, 88px); font-weight: 900; color: var(--gold-hi); margin: 0 6px; line-height: 1; }
-  .stage-bar .got small { font-family: var(--num); font-size: 40px; font-weight: 800; opacity: .75; }
-  .stage-bar.swap .who { animation: rise .7s var(--ease); }
-  body.on .head h1 { font-size: clamp(30px, 2.6vw, 44px); margin-top: 6px; }
-  body.on .arches { margin: 1.6vh 0 1.4vh; }
-  body.on .arch { width: 270px; padding: 34px 18px 18px; }
-  body.on .arch.p1 { width: 320px; padding-top: 44px; }
-  body.on .arch .rk { font-size: 76px; } body.on .arch.p1 .rk { font-size: 100px; }
-  body.on .arch .nm { font-size: 32px; } body.on .arch.p1 .nm { font-size: 38px; }
-  body.on .arch .sc { font-size: 36px; } body.on .arch.p1 .sc { font-size: 46px; }
-  body.on .row { height: clamp(40px, 4.6vh, 52px); }
+  /* 出场顺序 */
+  .order { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 1.4vh; }
+  .order .it { display: flex; align-items: baseline; gap: 10px; padding: 12px 14px; background: var(--paper); box-shadow: inset 0 0 0 1px var(--gold-soft); transition: background .4s, color .4s, opacity .4s; }
+  .order .it .n { font-family: var(--num); font-weight: 800; font-size: 20px; color: var(--gold); }
+  .order .it .t { font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .order .it.done { opacity: .4; }
+  .order .it.now { background: var(--emerald); color: var(--ivory); box-shadow: inset 0 0 0 3px var(--emerald), inset 0 0 0 4px var(--gold-hi); opacity: 1; }
+  .order .it.now .n { color: var(--gold-hi); }
+  .order .it.up { box-shadow: inset 0 0 0 2px var(--gold); }
+  .foot { display: flex; justify-content: space-between; align-items: center; }
+  .foot a { color: var(--emerald); font-weight: 700; text-decoration: none; letter-spacing: .1em; }
+  .err { color: var(--ruby); font-size: 14px; letter-spacing: .1em; }
 
-  /* 拱门 */
-  .arches { display: flex; justify-content: center; align-items: flex-end; gap: 32px; margin: 3.2vh 0 2.6vh; }
-  .arch { width: 300px; padding: 52px 22px 26px; transition: transform .6s var(--spring); }
-  .arch.p1 { width: 360px; padding-top: 70px; }
-  .arch .rk { font-family: var(--num); font-weight: 900; font-size: 104px; line-height: .9; }
-  .arch.p1 .rk { font-size: 140px; }
-  .arch .nm { font-size: 38px; font-weight: 800; margin-top: 12px; letter-spacing: .04em; min-height: 1.3em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .arch.p1 .nm { font-size: 46px; }
-  .arch .sc { font-family: var(--num); font-size: 44px; font-weight: 800; color: var(--gold-hi); margin-top: 4px; line-height: 1; }
-  .arch.p1 .sc { font-size: 56px; }
-  .arch .ct { font-size: 12px; letter-spacing: .3em; color: rgba(246, 240, 227, .55); margin-top: 10px; }
-  .arch.swap .nm, .arch.swap .sc { animation: rise .7s var(--ease); }
-  .arch.empty { background: transparent; color: var(--gold); box-shadow: inset 0 0 0 1.5px var(--gold-soft); }
-  .arch.empty::after { border-color: var(--gold-faint); }
-  .arch.empty .sc, .arch.empty .ct { color: var(--ink-3); }
-  @keyframes rise { from { opacity: 0; transform: translateY(16px); filter: blur(6px); } }
-
-  /* 名单 */
-  .list { position: relative; display: grid; grid-template-columns: 1fr 1fr; grid-auto-flow: column; column-gap: 72px; }
-  .row { display: grid; grid-template-columns: 52px 150px 1fr 96px; align-items: center; gap: 12px; padding: 0 6px;
-    height: clamp(44px, 5.4vh, 60px); border-bottom: 1px solid var(--gold-soft); transition: background .8s; }
-  .row .r { font-family: var(--num); font-weight: 800; font-size: 26px; color: var(--gold); }
-  .row .n { font-size: 24px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .row .s { font-family: var(--num); font-weight: 800; font-size: 34px; text-align: right; }
-  .row.none .s { color: var(--ink-3); }
-  .row.flash { background: rgba(241, 213, 138, .35); transition: none; }
-  .votes { display: flex; flex-wrap: wrap; gap: 3px; justify-content: flex-end; overflow: hidden; max-height: 40px; }
-  .votes i { font-style: normal; font-family: var(--num); font-weight: 700; font-size: 12px; line-height: 17px; width: 17px; text-align: center;
-    color: var(--ink-2); background: rgba(161, 122, 53, .1); border-radius: 2px; }
-  .votes i.x { background: transparent; color: var(--ink-3); text-decoration: line-through; box-shadow: inset 0 0 0 1px var(--gold-faint); }
-  .votes .none { font-size: 12px; color: var(--ink-3); letter-spacing: .14em; }
-
-  @media (max-width: 1100px) {
-    .wrap { padding: 64px 16px 24px; }
-    .stage-bar { grid-template-columns: 1fr; gap: 12px; padding: 18px 20px; }
-    .stage-bar .got { text-align: left; }
-    body.on .arch, body.on .arch.p1 { width: 32%; padding: 24px 6px 14px; }
-    body.on .arch .rk { font-size: 48px; } body.on .arch.p1 .rk { font-size: 62px; }
-    body.on .arch .nm, body.on .arch.p1 .nm { font-size: 16px; }
-    body.on .arch .sc, body.on .arch.p1 .sc { font-size: 22px; }
-    .stage-bar .nm { font-size: 48px; } .stage-bar .no { font-size: 40px; }
-    .arches { gap: 8px; }
-    .arch, .arch.p1 { width: 32%; padding: 30px 6px 16px; }
-    .arch .rk { font-size: 54px; } .arch.p1 .rk { font-size: 70px; }
-    .arch .nm, .arch.p1 .nm { font-size: 17px; }
-    .arch .sc, .arch.p1 .sc { font-size: 24px; }
-    .arch .ct { display: none; }
-    .list { grid-template-columns: 1fr; grid-auto-flow: row; grid-template-rows: none !important; }
-    .row { grid-template-columns: 34px 1fr auto; height: auto; padding: 10px 2px; }
-    .row .votes { grid-column: 2 / -1; grid-row: 2; justify-content: flex-start; }
-    .row .n { font-size: 18px; } .row .s { font-size: 26px; } .row .r { font-size: 20px; }
+  @media (max-width: 900px) {
+    .wrap { padding: 60px 16px 24px; }
+    .who { flex-direction: column; align-items: center; gap: 8px; }
+    .who .nm { font-size: 64px; } .who .no { font-size: 56px; }
+    .got { font-size: 20px; } .got b { font-size: 56px; } .got small { font-size: 30px; }
+    .order { grid-template-columns: 1fr 1fr; }
   }
 </style>
 </head>
-<body>
+<body class="corners">
 <div class="rays" data-spin></div>
 <nav class="topbar"><a href="index.html">首页</a><span class="live"><i></i>实时</span></nav>
 <main class="wrap">
-  <section class="stage-bar" id="stageBar" hidden>
-    <div><span class="k">现在台上</span><div class="who"><span class="no foil-light" id="stageNo"></span><span class="nm" id="stageName"></span></div></div>
-    <div class="got"><span class="k">已打分</span><span class="v"><b id="stageGot">0</b><small>/ <span id="stageTot">0</span></small> 人</span></div>
+  <section class="hero">
+    <div class="eyebrow" id="kicker">训练营路演</div>
+    <div class="who idle" id="who"><span class="no foil" id="no"></span><span class="nm" id="nm">路演即将开始</span></div>
+    <div class="divider"><i></i></div>
+    <div class="got" id="got" hidden>已打分<b id="gotN">0</b><small>/ <span id="gotT">0</span></small>人</div>
+    <div class="meter" id="meter" hidden><i></i></div>
+    <div class="next" id="next"></div>
   </section>
-  <div class="head">
-    <div class="eyebrow">训练营路演 · 实时</div>
-    <h1 class="title-deco">排名</h1>
-    <p class="rule">每人去掉一个最高分、一个最低分后取平均<span id="finalLink"></span><span class="err" id="err"></span></p>
-  </div>
-  <div class="arches">
-    <div class="arch sapphire p2" id="a2"><div class="rk foil-light">2</div><div class="nm"></div><div class="sc"></div><div class="ct"></div></div>
-    <div class="arch emerald p1" id="a1"><div class="rk foil-light">1</div><div class="nm"></div><div class="sc"></div><div class="ct"></div></div>
-    <div class="arch ruby p3" id="a3"><div class="rk foil-light">3</div><div class="nm"></div><div class="sc"></div><div class="ct"></div></div>
-  </div>
-  <div class="list" id="list"></div>
+  <div class="foot"><span class="eyebrow">出场顺序</span><span><span id="finalLink"></span><span class="err" id="err"></span></span></div>
+  <section class="order" id="order"></section>
 </main>
 <script src="vendor/workbuddy-cloud-sdk.js"></script>
-<script src="cloud.js?v=8"></script>
-<script src="deco.js?v=8"></script>
+<script src="cloud.js?v=10"></script>
+<script src="deco.js?v=10"></script>
 <script>
-const list = document.getElementById('list');
-const rows = {};
-const last = {};
-const archHolder = {};
-
-function votesHTML(r) {
-  const v = markDropped(r);
-  return v.length ? v.map(x => `<i class="${x.dropped ? 'x' : ''}" title="${esc(x.judge)}">${x.score}</i>`).join('') : '<span class="none">还没人打分</span>';
-}
-
-function paintArch(place, r, total) {
-  const el = document.getElementById('a' + place);
-  const nm = el.querySelector('.nm'), sc = el.querySelector('.sc'), ct = el.querySelector('.ct');
-  const has = r && r.avg !== null;
-  el.classList.toggle('empty', !has);
-  const id = has ? r.id : null;
-  el.querySelector('.rk').textContent = has ? r.rank : place;
-  if (archHolder[place] !== id) {
-    archHolder[place] = id;
-    el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap');
-    nm.textContent = has ? r.name : '虚位以待';
-    sc.dataset.v = 0;
-  }
-  if (has) countTo(sc, r.avg); else stopCount(sc, '—');
-  ct.textContent = has ? `${r.count} 票` : '';
-}
-
-function makeRow(r) {
-  const el = document.createElement('div');
-  el.className = 'row';
-  el.innerHTML = `<span class="r"></span><span class="n">${esc(r.name)}</span><span class="votes"></span><span class="s num"></span>`;
-  return el;
-}
-
-let busy = false;
+let busy = false, lastId, orderKey = '';
 async function refresh() {
   if (busy) return;
   busy = true;
   try {
     const [roster, ss, settings] = await Promise.all([getRoster(), getScores(), getSettings()]);
-    const ps = roster.players, judges = roster.judges;
     document.getElementById('err').textContent = '';
-    const ranking = buildRanking(ps, ss, judges);
-    const total = ps.length;
-    const scored = ranking.filter(r => r.avg !== null);
+    const ps = byDrawOrder(roster.players), judges = roster.judges;
+    const on = ps.find(p => p.id === +settings.on_stage) || null;
+    const idx = on ? ps.indexOf(on) : -1;
+    const nextP = on ? ps[idx + 1] : ps[0];
 
-    [1, 2, 3].forEach(pl => paintArch(pl, scored[pl - 1], total));
-
-    // 名单：第 4 名起（没人打分时从第 1 个开始列，拱门空着）
-    const rest = scored.length >= 3 ? ranking.slice(3) : ranking.filter(r => !scored.slice(0, 3).includes(r));
-    list.style.gridTemplateRows = `repeat(${Math.ceil(rest.length / 2)}, auto)`;
-    const before = {};
-    Object.entries(rows).forEach(([id, el]) => { if (el.isConnected) before[id] = el.getBoundingClientRect(); });
-    Object.values(rows).forEach(el => el.remove());
-    rest.forEach(r => {
-      const el = rows[r.id] || (rows[r.id] = makeRow(r));
-      el.classList.toggle('none', r.avg === null);
-      el.querySelector('.r').textContent = r.rank ? pad2(r.rank) : '';
-      el.querySelector('.votes').innerHTML = votesHTML(r);
-      const s = el.querySelector('.s');
-      if (r.avg === null) stopCount(s, '—'); else countTo(s, r.avg);
-      if (last[r.id] !== undefined && last[r.id] !== r.avg) {
-        el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 60);
-      }
-      list.appendChild(el);
-    });
-    ranking.forEach(r => { last[r.id] = r.avg; });
-
-    rest.forEach(r => {
-      const el = rows[r.id], old = before[r.id];
-      if (!old) { el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500 }); return; }
-      const now = el.getBoundingClientRect();
-      const dx = old.left - now.left, dy = old.top - now.top;
-      if (dx || dy) el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 750, easing: 'cubic-bezier(.2,.8,.2,1)' });
-    });
-
-    const on = ps.find(p => p.id === +settings.on_stage);
-    const bar = document.getElementById('stageBar');
-    bar.hidden = !on;
-    document.body.classList.toggle('on', !!on);
-    if (on) {
-      if (bar.dataset.id !== String(on.id)) {   // 换人时名字浮现一下
-        bar.dataset.id = on.id;
-        bar.classList.remove('swap'); void bar.offsetWidth; bar.classList.add('swap');
-      }
-      document.getElementById('stageNo').textContent = on.draw_order ? pad2(on.draw_order) : '';
-      document.getElementById('stageName').textContent = on.name;
-      const tokens = new Set(judges.map(p => p.token));
-      document.getElementById('stageGot').textContent = new Set(ss.filter(s => s.target_id === on.id && tokens.has(s.judge_token)).map(s => s.judge_token)).size;
-      document.getElementById('stageTot').textContent = judges.length;
+    // 台上：换人时名字浮现一下
+    const who = document.getElementById('who'), id = on ? on.id : null;
+    if (id !== lastId) {
+      lastId = id;
+      who.classList.toggle('idle', !on);
+      document.getElementById('kicker').textContent = on ? '现在台上' : '训练营路演';
+      document.getElementById('no').textContent = on && on.draw_order ? pad2(on.draw_order) : '';
+      document.getElementById('nm').textContent = on ? on.name : '路演即将开始';
+      who.classList.remove('swap'); void who.offsetWidth; who.classList.add('swap');
     }
+
+    // 打分进度：只显示人数，不显示分数
+    document.getElementById('got').hidden = !on;
+    document.getElementById('meter').hidden = !on;
+    if (on) {
+      const tokens = new Set(judges.map(p => p.token));
+      const n = new Set(ss.filter(s => s.target_id === on.id && tokens.has(s.judge_token)).map(s => s.judge_token)).size;
+      document.getElementById('gotN').textContent = n;
+      document.getElementById('gotT').textContent = judges.length;
+      const meter = document.getElementById('meter');
+      meter.classList.toggle('full', n >= judges.length);
+      meter.firstElementChild.style.width = (judges.length ? n / judges.length * 100 : 0) + '%';
+    }
+    document.getElementById('next').innerHTML = nextP
+      ? `${on ? '下一位' : '第一位'}：<b>${nextP.draw_order ? pad2(nextP.draw_order) + ' ' : ''}${esc(nextP.name)}</b>`
+      : (on ? '这是最后一位' : '');
+
+    // 出场顺序：讲完的变淡，台上的高亮，下一位描金边
+    const html = ps.map((p, i) => `<div class="it ${on && i < idx ? 'done' : ''} ${on && i === idx ? 'now' : ''} ${p === nextP ? 'up' : ''}"><span class="n">${p.draw_order ? pad2(p.draw_order) : ''}</span><span class="t">${esc(p.name)}</span></div>`).join('');
+    if (html !== orderKey) { orderKey = html; document.getElementById('order').innerHTML = html; }
+
     document.getElementById('finalLink').innerHTML = settings.finalized === 'true' ? '<a href="final.html">名次已公布，去颁奖 →</a>' : '';
   } catch (e) {
-    document.getElementById('err').textContent = ' · 网络断了，正在重连';
+    document.getElementById('err').textContent = '网络断了，正在重连';
   }
   busy = false;
 }

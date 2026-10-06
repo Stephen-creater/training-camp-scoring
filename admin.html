@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#f6f0e3">
 <title>后台</title>
-<link rel="stylesheet" href="theme.css?v=8">
+<link rel="stylesheet" href="theme.css?v=10">
 <style>
   .rays { opacity: .5; }
   .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px 80px; }
@@ -62,6 +62,18 @@
   .list .item.on .go { color: var(--ink-3); cursor: default; }
   .list .more { display: none; padding: 0 0 14px 56px; font-size: 15px; line-height: 1.8; color: var(--ink-2); }
   .list .item.open .more { display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+
+  /* 实时排名 */
+  .rank .rk-row { display: grid; grid-template-columns: 40px 120px 1fr 56px 70px; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--gold-faint); }
+  .rank .rk-row.top .rk-name { color: var(--emerald); }
+  .rank .rk-n { font-family: var(--num); font-weight: 800; font-size: 18px; color: var(--gold); }
+  .rank .rk-name { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank .rk-votes { display: flex; flex-wrap: wrap; gap: 3px; }
+  .rank .rk-votes i { font-style: normal; font-family: var(--num); font-weight: 700; font-size: 12px; line-height: 18px; width: 18px; text-align: center; background: var(--gold-faint); border-radius: 2px; }
+  .rank .rk-votes i.x { background: transparent; color: var(--ink-3); text-decoration: line-through; box-shadow: inset 0 0 0 1px var(--gold-faint); }
+  .rank .rk-votes em { font-style: normal; font-size: 13px; color: var(--ink-3); }
+  .rank .rk-c { font-size: 13px; color: var(--ink-3); text-align: right; }
+  .rank .rk-s { font-family: var(--num); font-weight: 800; font-size: 20px; text-align: right; }
 
   /* 谁没来 */
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -121,8 +133,8 @@
 <main class="wrap" id="app"></main>
 <script src="vendor/workbuddy-cloud-sdk.js"></script>
 <script src="vendor/qrcode-generator.js"></script>
-<script src="cloud.js?v=8"></script>
-<script src="deco.js?v=8"></script>
+<script src="cloud.js?v=10"></script>
+<script src="deco.js?v=10"></script>
 <script>
 const app = document.getElementById('app');
 let P = [], J = [], S = [], SET = {}, ALL = [];   // P=上台选手，J=要打分的人（选手+工作人员），ALL=完整名单（含缺席）
@@ -138,7 +150,7 @@ async function boot() {
   app.innerHTML = `
     <header>
       <h1>后台</h1>
-      <nav>大屏页面：<a href="draw.html" target="_blank">抽签</a><a href="rank.html" target="_blank">实时排名</a><a href="final.html" target="_blank">颁奖</a></nav>
+      <nav>大屏页面：<a href="draw.html" target="_blank">抽签</a><a href="rank.html" target="_blank">现场大屏</a><a href="final.html" target="_blank">颁奖</a></nav>
     </header>
 
     <section class="frame">
@@ -156,6 +168,11 @@ async function boot() {
     <section class="frame">
       <div class="row-h"><div><h2>出场名单</h2><p class="hint">每位选手收到了几个人的分。点「还差谁」看名字并复制催办。</p></div></div>
       <div class="list" id="list"></div>
+    </section>
+
+    <section class="frame">
+      <div class="row-h"><div><h2>实时排名</h2><p class="hint">只在后台显示，大屏不显示名次，颁奖时再揭晓。去掉一个最高分、一个最低分后取平均；划线的是被去掉的分。</p></div></div>
+      <div class="rank" id="rankList"></div>
     </section>
 
     <section class="frame">
@@ -279,6 +296,16 @@ function paint() {
     el.querySelector('.go').onclick = () => setStage(id);
     el.querySelector('[data-copy]').onclick = () => copyNudge(t, progressOf(t).missing);
   });
+
+  // 实时排名（只在后台）
+  setHTML('rankList', buildRanking(P, S, J).map(r => `
+    <div class="rk-row ${r.rank && r.rank <= 3 ? 'top' : ''}">
+      <span class="rk-n">${r.rank ? pad2(r.rank) : '—'}</span>
+      <span class="rk-name">${esc(r.name)}</span>
+      <span class="rk-votes">${r.votes.length ? markDropped(r).map(v => `<i class="${v.dropped ? 'x' : ''}" title="${esc(v.judge)}">${v.score}</i>`).join('') : '<em>还没人打分</em>'}</span>
+      <span class="rk-c">${r.count} 票</span>
+      <span class="rk-s">${r.avg === null ? '—' : r.avg.toFixed(2)}</span>
+    </div>`).join(''));
 
   // 谁没来
   const absent = parseAbsent(SET.absent);

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#f6f0e3">
 <title>训练营路演打分</title>
-<link rel="stylesheet" href="theme.css?v=8">
+<link rel="stylesheet" href="theme.css?v=10">
 <style>
   .wrap { max-width: 1180px; margin: 0 auto; padding: 0 32px 40px; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
   header { display: flex; justify-content: space-between; align-items: center; padding: 24px 0; }
@@ -60,7 +60,7 @@
   </section>
   <nav>
     <a class="arch emerald" href="draw.html"><span class="n foil-light">01</span><span class="t">抽签</span><span class="d">定出场顺序</span></a>
-    <a class="arch sapphire" href="rank.html"><span class="n foil-light">02</span><span class="t">实时排名</span><span class="d">投到大屏</span></a>
+    <a class="arch sapphire" href="rank.html"><span class="n foil-light">02</span><span class="t">现场大屏</span><span class="d">台上是谁 · 打分进度</span></a>
     <a class="arch ruby" href="final.html"><span class="n foil-light">03</span><span class="t">颁奖</span><span class="d">公布名次后开放</span></a>
     <a class="arch plain" href="admin.html"><span class="n foil">04</span><span class="t">后台</span><span class="d">二维码 · 进度 · 公布</span></a>
   </nav>
@@ -70,8 +70,8 @@
   </div>
 </div>
 <script src="vendor/workbuddy-cloud-sdk.js"></script>
-<script src="cloud.js?v=8"></script>
-<script src="deco.js?v=8"></script>
+<script src="cloud.js?v=10"></script>
+<script src="deco.js?v=10"></script>
 <script>
 const d = new Date();
 document.getElementById('date').textContent = `${d.getFullYear()}.${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`;
