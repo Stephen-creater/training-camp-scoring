@@ -426,6 +426,9 @@ async function exportAll() {
   XLSX.writeFile(wb, '训练营排名与明细.xlsx');
 }
 
+/* 广州站应用只认带分享码的链接（WorkBuddy 无法改成公开访问），二维码和复制的链接都带上它；不需要时留空 */
+const SHARE_CODE = 'VA32YU6T4V';
+
 /* 二维码卡片：画成一张带名字的图片，长按/右键就能保存 */
 async function drawQRs() {
   try { await document.fonts.load('800 40px Board'); } catch (e) {}
@@ -433,7 +436,7 @@ async function drawQRs() {
   const box = document.getElementById('qrs');
   box.innerHTML = '';
   byDrawOrder(ALL).forEach(p => {
-    const url = `${base}?token=${p.token}`;
+    const url = `${base}?token=${p.token}` + (SHARE_CODE ? `&sharecode=${SHARE_CODE}` : '');
     const src = qrCard(p, url);
     const el = document.createElement('div');
     el.className = 'qr';
