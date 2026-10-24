@@ -1,12 +1,5 @@
-曲名：Heroic Age
-作者：Kevin MacLeod (incompetech.com)
-来源页面：https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100848
-直接下载地址：https://incompetech.com/music/royalty-free/mp3-royaltyfree/Heroic%20Age.mp3
-授权：Creative Commons 署名 4.0 (CC BY 4.0)，可免费使用，必须署名
-授权说明页：https://incompetech.com/music/royalty-free/faq.html
-时长：1分37秒；已转为 AAC 128kbps（bgm.m4a）
+第二期（广州站）颁奖背景音乐：bgm-gz.m4a
+来源：Stephen 提供的视频文件 916513026-1-30232.mp4（B 站导出，2026-10-24），只取音轨，原视频已删除
+处理：响度调到约 -12.7 LUFS（与第一期背景音乐接近），AAC 128kbps，时长 1分49秒，循环播放
 
-需要的署名文字（放在页面角落或结尾致谢处，需让观众看得到）：
-"Heroic Age" Kevin MacLeod (incompetech.com)
-Licensed under Creative Commons: By Attribution 4.0
-https://creativecommons.org/licenses/by/4.0/
+第一期用的是 Kevin MacLeod《Heroic Age》（CC BY 4.0，bgm.m4a），第二期已不再使用，文件留在 git 历史里。

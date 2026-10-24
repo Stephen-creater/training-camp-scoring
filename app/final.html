@@ -146,6 +146,15 @@ function locked(title, text) {
   const settings = await getSettings();
   if (settings.finalized !== 'true') {
     locked('名次还没公布', '后台点「公布名次」后，这页会自己打开。');
+    // 浏览器要先有人点过页面才肯自动出声：先试一下，不行就提示点一下屏幕，公布后音乐才能自己响
+    const probe = new Audio('assets/bgm-gz.m4a'); probe.volume = 0;
+    probe.play().then(() => probe.pause()).catch(() => {
+      const tip = document.createElement('p');
+      tip.style.cssText = 'margin-top:18px;color:var(--gold);font-size:15px;letter-spacing:.12em';
+      tip.textContent = '点一下屏幕，公布后音乐会自动播放';
+      app.querySelector('.locked').appendChild(tip);
+      document.addEventListener('pointerdown', () => tip.remove(), { once: true });
+    });
     // 大屏可能提前开着：每 5 秒看一眼，公布了就自动进入
     const t = setInterval(async () => {
       try { if ((await getSettings()).finalized === 'true') { clearInterval(t); location.reload(); } } catch (e) {}
@@ -165,7 +174,7 @@ function locked(title, text) {
   if (SHOW_ALL) app.classList.add('instant');
 
   // 背景音乐：只在颁奖页。先尝试直接播放；浏览器不允许自动出声时，第一次点击（揭晓）时渐入
-  const bgm = new Audio('assets/bgm.m4a');
+  const bgm = new Audio('assets/bgm-gz.m4a');
   bgm.loop = true; bgm.volume = 0;
   let bgmOn = true;
   const fadeTo = (v, ms = 1800) => {
@@ -178,7 +187,7 @@ function locked(title, text) {
   document.addEventListener('keydown', startBgm);
   const bgmBox = document.createElement('div');
   bgmBox.className = 'bgm';
-  bgmBox.innerHTML = `<span>音乐：Heroic Age — Kevin MacLeod（incompetech.com）· CC BY 4.0</span><button class="bgm-btn" type="button">关闭音乐</button>`;
+  bgmBox.innerHTML = `<button class="bgm-btn" type="button">关闭音乐</button>`;
   document.body.appendChild(bgmBox);
   bgmBox.querySelector('button').onclick = e => {
     bgmOn = !bgmOn;
