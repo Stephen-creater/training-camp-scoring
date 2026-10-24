@@ -36,7 +36,7 @@
   .arch::after { clip-path: inset(100% 0 0 0); transition: clip-path 1.4s .25s var(--ease); }
   .arch.lit::after { clip-path: inset(0 0 0 0); }
   .arch.lit { box-shadow: 0 30px 70px -36px rgba(27, 34, 32, .55); }
-  .arch.p1.lit { box-shadow: 0 0 0 1px var(--gold-soft), 0 40px 90px -30px rgba(15, 92, 77, .6); }
+  .arch.p1.lit { box-shadow: 0 0 0 1px var(--gold-soft), 0 40px 90px -30px var(--m-glow); }
   .arch.crown { scale: 1.06; }
   .arch.hidden { visibility: hidden; }
 
@@ -50,6 +50,19 @@
   .arch.multi .nm, .arch.p1.multi .nm { font-size: calc(var(--h) * .07); }
   .arch .sc { font-family: var(--num); font-weight: 800; font-size: calc(var(--h) * .085); color: var(--gold-hi); margin-top: calc(var(--h) * .015); min-height: 1em; line-height: 1; opacity: 0; transition: opacity .6s, font-size .9s var(--ease); }
   .arch.lit .sc.on { opacity: 1; }
+  /* 金银铜（第二期）：亮起时底色先过渡到金属中间色，再淡入一层金属光泽；字改成同色系的深色 */
+  .arch { isolation: isolate; }
+  .arch::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--m-grad); opacity: 0; transition: opacity 1.2s .2s; }
+  .arch.lit::before { opacity: 1; }
+  .arch.gold   { --m: #d7ac4c; --m-grad: linear-gradient(160deg, #f3dc95 0%, #d7ac4c 55%, #b48530 100%); --m-rk: linear-gradient(180deg, #6b4a12, #3d2905); --m-ink: #2a1d06; --m-ink2: #6b4a12; --m-sc: #4d3509; --m-line: rgba(255, 248, 220, .9); --m-glow: rgba(150, 105, 25, .7); }
+  .arch.silver { --m: #c9ced6; --m-grad: linear-gradient(160deg, #f4f5f7 0%, #c9ced6 55%, #9da4ae 100%); --m-rk: linear-gradient(180deg, #4b5563, #1f2937); --m-ink: #1b2220; --m-ink2: #4b5563; --m-sc: #374151; --m-line: rgba(255, 255, 255, .95); --m-glow: rgba(80, 90, 105, .6); }
+  .arch.bronze { --m: #c27f52; --m-grad: linear-gradient(160deg, #ecc0a0 0%, #c27f52 55%, #94552f 100%); --m-rk: linear-gradient(180deg, #5e2f12, #3a1a07); --m-ink: #2b1508; --m-ink2: #5e2f12; --m-sc: #4a240c; --m-line: rgba(255, 236, 220, .9); --m-glow: rgba(120, 60, 25, .6); }
+  .arch.lit.gold, .arch.lit.silver, .arch.lit.bronze { background-color: var(--m); color: var(--m-ink); box-shadow: 0 30px 70px -36px var(--m-glow); }
+  .arch.p1.lit.gold { box-shadow: 0 0 0 1px var(--gold-soft), 0 40px 90px -30px var(--m-glow); }
+  .arch.lit .rk { background: var(--m-rk); -webkit-background-clip: text; background-clip: text; }
+  .arch.lit .tt { color: var(--m-ink2); opacity: 1; }
+  .arch.lit .sc { color: var(--m-sc); }
+  .arch.lit::after { border-color: var(--m-line); }
   .ch { display: inline-block; animation: chIn .9s var(--ease) both; }
   @keyframes chIn { from { opacity: 0; transform: translateY(.6em); filter: blur(10px); } }
 
@@ -118,7 +131,7 @@
 <script>
 const app = document.getElementById('app');
 const TITLES = { 1: '冠军', 2: '亚军', 3: '季军' };
-const GEM = { 1: 'emerald', 2: 'sapphire', 3: 'ruby' };
+const GEM = { 1: 'gold', 2: 'silver', 3: 'bronze' };
 const SHOW_ALL = new URLSearchParams(location.search).has('all');
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
