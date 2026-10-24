@@ -1,8 +1,8 @@
 /* 训练营打分系统 · 数据层与公共小工具
    依赖：vendor/workbuddy-cloud-sdk.js（必须先加载） */
 const cloud = WorkBuddyCloud.createWorkBuddyCloud({
-  endpoint: 'https://camp-scoring.app.workbuddy.host',
-  publishableKey: 'wbpk_n323oWBG80JJz3OztvKoXA_azaBxyclxH1ucdo12AiitkZtfdiiofZy',
+  endpoint: 'https://camp-scoring-gz.app.workbuddy.host',
+  publishableKey: 'wbpk_06KE60P5cB0lhTrGCKcONG_MiYvT1lQwjVQhbcS627llU0xQpvvYcK5',
 });
 
 /* 管理口令只存指纹（SHA-256），看源代码也看不出口令本身。改口令：把新口令的 SHA-256 填到这里 */
