@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f6f0e3">
+<title>现场大屏</title>
+<link rel="stylesheet" href="theme.css?v=12">
+<style>
+  /* 现场大屏：只显示谁在台上、打分进度、出场顺序。不显示任何分数和名次（名次留到颁奖揭晓） */
+  .wrap { max-width: 1640px; margin: 0 auto; padding: 56px 64px 36px; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+  .hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2vh 0; }
+  .hero .eyebrow { font-size: 18px; letter-spacing: .6em; text-indent: .6em; }
+  .who { display: flex; align-items: baseline; justify-content: center; gap: 36px; margin-top: 3vh; max-width: 100%; }
+  .who .no { font-family: var(--num); font-weight: 900; font-size: clamp(90px, 10vw, 190px); line-height: .9; }
+  .who .nm { font-size: clamp(110px, 13vw, 240px); font-weight: 900; letter-spacing: .08em; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .who.idle .nm { font-size: clamp(56px, 6vw, 104px); letter-spacing: .2em; }
+  .who.swap { animation: rise .8s var(--ease); }
+  @keyframes rise { from { opacity: 0; transform: translateY(24px); filter: blur(8px); } }
+  .hero .divider { width: min(560px, 60%); margin: 4vh auto 0; }
+  .got { margin-top: 3vh; display: flex; align-items: baseline; gap: 14px; font-size: 30px; font-weight: 700; letter-spacing: .1em; }
+  .got b { font-family: var(--num); font-size: clamp(64px, 6vw, 104px); font-weight: 900; color: var(--emerald); line-height: 1; letter-spacing: 0; }
+  .got small { font-family: var(--num); font-size: 48px; font-weight: 800; color: var(--ink-3); letter-spacing: 0; }
+  .meter { width: min(820px, 80%); height: 8px; background: var(--gold-faint); border-radius: 4px; overflow: hidden; margin-top: 2.4vh; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--gold); transition: width .6s var(--ease); }
+  .meter.full i { background: var(--emerald); }
+  .next { margin-top: 2.4vh; font-size: 22px; letter-spacing: .2em; color: var(--ink-2); min-height: 1.5em; }
+  .next b { color: var(--ink); }
+
+  /* 出场顺序 */
+  .order { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 1.4vh; }
+  .order .it { display: flex; align-items: baseline; gap: 10px; padding: 12px 14px; background: var(--paper); box-shadow: inset 0 0 0 1px var(--gold-soft); transition: background .4s, color .4s, opacity .4s; }
+  .order .it .n { font-family: var(--num); font-weight: 800; font-size: 20px; color: var(--gold); }
+  .order .it .t { font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .order .it.done { opacity: .4; }
+  .order .it.now { background: var(--emerald); color: var(--ivory); box-shadow: inset 0 0 0 3px var(--emerald), inset 0 0 0 4px var(--gold-hi); opacity: 1; }
+  .order .it.now .n { color: var(--gold-hi); }
+  .order .it.up { box-shadow: inset 0 0 0 2px var(--gold); }
+  .foot { display: flex; justify-content: space-between; align-items: center; }
+  .foot a { color: var(--emerald); font-weight: 700; text-decoration: none; letter-spacing: .1em; }
+  .err { color: var(--ruby); font-size: 14px; letter-spacing: .1em; }
+
+  @media (max-width: 900px) {
+    .wrap { padding: 60px 16px 24px; }
+    .who { flex-direction: column; align-items: center; gap: 8px; }
+    .who .nm { font-size: 64px; } .who .no { font-size: 56px; }
+    .got { font-size: 20px; } .got b { font-size: 56px; } .got small { font-size: 30px; }
+    .order { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body class="corners">
+<div class="rays" data-spin></div>
+<nav class="topbar"><a href="index.html">首页</a><span class="live"><i></i>实时</span></nav>
+<main class="wrap">
+  <section class="hero">
+    <div class="eyebrow" id="kicker">训练营路演</div>
+    <div class="who idle" id="who"><span class="no foil" id="no"></span><span class="nm" id="nm">路演即将开始</span></div>
+    <div class="divider"><i></i></div>
+    <div class="got" id="got" hidden>已打分<b id="gotN">0</b><small>/ <span id="gotT">0</span></small>人</div>
+    <div class="meter" id="meter" hidden><i></i></div>
+    <div class="next" id="next"></div>
+  </section>
+  <div class="foot"><span class="eyebrow">出场顺序</span><span><span id="finalLink"></span><span class="err" id="err"></span></span></div>
+  <section class="order" id="order"></section>
+</main>
+<script src="vendor/workbuddy-cloud-sdk.js"></script>
+<script src="cloud.js?v=12"></script>
+<script src="deco.js?v=12"></script>
+<script>
+let busy = false, lastId, orderKey = '';
+async function refresh() {
+  if (busy) return;
+  busy = true;
+  try {
+    const [roster, ss, settings] = await Promise.all([getRoster(), getScores(), getSettings()]);
+    document.getElementById('err').textContent = '';
+    const ps = byDrawOrder(roster.players), judges = roster.judges;
+    const on = ps.find(p => p.id === +settings.on_stage) || null;
+    const idx = on ? ps.indexOf(on) : -1;
+    const nextP = on ? ps[idx + 1] : ps[0];
+
+    // 台上：换人时名字浮现一下
+    const who = document.getElementById('who'), id = on ? on.id : null;
+    if (id !== lastId) {
+      lastId = id;
+      who.classList.toggle('idle', !on);
+      document.getElementById('kicker').textContent = on ? '现在台上' : '训练营路演';
+      document.getElementById('no').textContent = on && on.draw_order ? pad2(on.draw_order) : '';
+      document.getElementById('nm').textContent = on ? on.name : '路演即将开始';
+      who.classList.remove('swap'); void who.offsetWidth; who.classList.add('swap');
+    }
+
+    // 打分进度：只显示人数，不显示分数
+    document.getElementById('got').hidden = !on;
+    document.getElementById('meter').hidden = !on;
+    if (on) {
+      const tokens = new Set(judges.map(p => p.token));
+      const n = new Set(ss.filter(s => s.target_id === on.id && tokens.has(s.judge_token)).map(s => s.judge_token)).size;
+      document.getElementById('gotN').textContent = n;
+      document.getElementById('gotT').textContent = judges.length;
+      const meter = document.getElementById('meter');
+      meter.classList.toggle('full', n >= judges.length);
+      meter.firstElementChild.style.width = (judges.length ? n / judges.length * 100 : 0) + '%';
+    }
+    document.getElementById('next').innerHTML = nextP
+      ? `${on ? '下一位' : '第一位'}：<b>${nextP.draw_order ? pad2(nextP.draw_order) + ' ' : ''}${esc(nextP.name)}</b>`
+      : (on ? '这是最后一位' : '');
+
+    // 出场顺序：讲完的变淡，台上的高亮，下一位描金边
+    const html = ps.map((p, i) => `<div class="it ${on && i < idx ? 'done' : ''} ${on && i === idx ? 'now' : ''} ${p === nextP ? 'up' : ''}"><span class="n">${p.draw_order ? pad2(p.draw_order) : ''}</span><span class="t">${esc(p.name)}</span></div>`).join('');
+    if (html !== orderKey) { orderKey = html; document.getElementById('order').innerHTML = html; }
+
+    document.getElementById('finalLink').innerHTML = settings.finalized === 'true' ? '<a href="final.html">名次已公布，去颁奖 →</a>' : '';
+  } catch (e) {
+    document.getElementById('err').textContent = '网络断了，正在重连';
+  }
+  busy = false;
+}
+refresh();
+setInterval(refresh, 3000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+</script>
+</body>
+</html>

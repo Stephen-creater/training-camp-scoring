@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f6f0e3">
+<title>打分</title>
+<link rel="stylesheet" href="theme.css?v=12">
+<style>
+  .rays { opacity: .8; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 0 16px calc(40px + env(safe-area-inset-bottom)); }
+
+  /* 抬头：身份 + 规则 */
+  header { padding: calc(20px + env(safe-area-inset-top)) 0 16px; text-align: center; }
+  .who { font-size: 14px; color: var(--ink-2); letter-spacing: .12em; }
+  .who b { color: var(--ink); font-weight: 800; letter-spacing: .06em; }
+  .rule { display: inline-flex; align-items: center; gap: 14px; margin-top: 12px; padding: 10px 20px 9px; font-size: 15px; font-weight: 600; color: var(--ink); }
+  .rule b { font-family: var(--num); font-size: 28px; font-weight: 800; line-height: 1; margin-right: 3px; vertical-align: -3px; }
+  .rule .pass-b { color: var(--emerald); }
+  .rule .sep { width: 5px; height: 5px; transform: rotate(45deg); background: var(--gold); flex: none; }
+
+  /* 现在台上 */
+  .stage {
+    position: relative; overflow: hidden; background: var(--sapphire); color: var(--ivory);
+    border-radius: 4px; padding: 16px 14px 14px;
+    box-shadow: 0 18px 36px -22px rgba(33, 63, 140, .7);
+  }
+  .stage::after { content: ''; position: absolute; inset: 6px; border: 1.5px solid rgba(233, 196, 120, .75); border-radius: 2px; pointer-events: none; }
+  .stage::before {             /* 换人时扫过的一道金光 */
+    content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 50%; pointer-events: none;
+    background: linear-gradient(100deg, transparent, rgba(241, 213, 138, .45), transparent); transform: skewX(-18deg); opacity: 0;
+  }
+  .stage.glint { animation: glow 1.1s var(--ease); }
+  .stage.glint::before { animation: sweep 1s var(--ease); }
+  @keyframes glow { 30% { box-shadow: 0 0 0 4px rgba(241, 213, 138, .85), 0 0 34px rgba(241, 213, 138, .7); } }
+  @keyframes sweep { 0% { left: -60%; opacity: 1; } 100% { left: 120%; opacity: 1; } }
+  .st-label { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-size: 12px; font-weight: 700; letter-spacing: .4em; text-indent: .4em; color: var(--gold-hi); }
+  .st-label i { width: 6px; height: 6px; transform: rotate(45deg); background: var(--gold-hi); flex: none; }
+  .st-label i:first-child { animation: pulse 1.4s infinite; }
+  .st-body { position: relative; z-index: 1; padding: 12px 4px 2px; transition: opacity .2s, transform .25s var(--ease); }
+  .st-body.out { opacity: 0; transform: translateY(6px); }
+  .st-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .st-seq { font-family: var(--num); font-size: 30px; font-weight: 800; line-height: 1; flex: none; }
+  .st-name { flex: 1; min-width: 0; font-size: 24px; font-weight: 800; letter-spacing: .06em; line-height: 1.2;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; word-break: break-all; }
+  .st-name .tag { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold-hi); }
+  .st-score { font-family: var(--num); font-size: 40px; font-weight: 800; line-height: .9; min-width: 2ch; text-align: right; }
+  .st-score.empty { background: none; color: rgba(241, 213, 138, .4); font-size: 30px; }
+  .st-score.low { background: none; color: #f3a6b2; }
+  .st-state { min-height: 14px; margin-top: 4px; text-align: right; font-size: 12px; color: rgba(246, 240, 227, .7); letter-spacing: .1em; }
+  .st-state.bad { color: #ffd1d8; font-weight: 600; }
+  .st-empty { padding: 14px 6px 18px; text-align: center; font-size: 16px; line-height: 1.7; color: rgba(246, 240, 227, .88); letter-spacing: .06em; }
+
+  /* 10 个分数键（名单行） */
+  .keys { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; position: relative; }
+  .keys button {
+    height: 46px; border: 0; border-radius: 2px; cursor: pointer; padding: 0; min-width: 0;
+    background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 1px var(--gold-soft);
+    font-family: var(--num); font-size: 19px; font-weight: 800;
+    transition: background .15s, color .15s, transform .12s var(--ease), box-shadow .15s;
+  }
+  .keys button:nth-child(-n+5) { color: var(--ink-3); }
+  .keys button:nth-child(5) { margin-right: 4px; }
+  .keys button:nth-child(6) { margin-left: 4px; }
+  .keys button:active { transform: scale(.9); }
+  .keys button.on { background: var(--emerald); color: var(--ivory); box-shadow: inset 0 0 0 2px var(--emerald), inset 0 0 0 3px var(--gold-hi); }
+  .keys button.on.low { background: var(--ruby); box-shadow: inset 0 0 0 2px var(--ruby), inset 0 0 0 3px var(--gold-hi); }
+  .keys .pass { position: absolute; top: -6px; bottom: -6px; left: 50%; width: 1.5px; margin-left: -.75px; background: var(--gold); pointer-events: none; }
+  .keys .pass::before { content: ''; position: absolute; left: 50%; top: -3px; width: 5px; height: 5px; margin-left: -2.5px; transform: rotate(45deg); background: var(--gold); }
+
+  /* 卡片里的分数键：宝蓝底上 */
+  .st-keys button { height: 52px; font-size: 21px; background: rgba(246, 240, 227, .1); color: var(--ivory); box-shadow: inset 0 0 0 1px rgba(233, 196, 120, .45); }
+  .st-keys button:nth-child(-n+5) { color: rgba(246, 240, 227, .62); }
+  .st-keys button.on { background: var(--foil-light); color: var(--ink); box-shadow: inset 0 0 0 2px #c7952f, inset 0 0 0 3px var(--paper); }
+  .st-keys button.on.low { background: var(--ruby); color: var(--ivory); box-shadow: inset 0 0 0 2px var(--ruby), inset 0 0 0 3px var(--gold-hi); }
+  .st-keys .pass, .st-keys .pass::before { background: var(--gold-hi); }
+
+  /* 全部名单 */
+  .list-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 26px; padding-bottom: 8px; border-bottom: 1px solid var(--gold); }
+  .lh-title { font-size: 13px; font-weight: 700; letter-spacing: .4em; color: var(--gold); }
+  .count { font-size: 14px; color: var(--ink-2); letter-spacing: .08em; white-space: nowrap; }
+  .count .num { font-size: 22px; font-weight: 800; letter-spacing: 0; margin: 0 2px; vertical-align: -2px; }
+  .count.all { color: var(--emerald); font-weight: 700; }
+
+  .person { position: relative; padding: 18px 0; border-bottom: 1px solid var(--gold-soft); transition: background .5s; }
+  .person.stage-row .p-name { color: var(--sapphire); }
+  .p-head { display: flex; align-items: center; gap: 12px; margin-bottom: 13px; }
+  .seq { font-family: var(--num); font-size: 20px; font-weight: 800; width: 2ch; flex: none; line-height: 1; }
+  .p-name { font-size: 18px; font-weight: 700; flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; letter-spacing: .02em; word-break: break-all; }
+  .tag { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-indent: .14em; padding: 3px 7px; border-radius: 2px; box-shadow: inset 0 0 0 1px var(--gold); color: var(--gold); line-height: 1.3; }
+  .tag.live { background: var(--sapphire); color: var(--ivory); box-shadow: none; }
+  .tag[hidden] { display: none; }
+  .p-score { font-size: 34px; font-weight: 800; line-height: .9; min-width: 2ch; text-align: right; }
+  .p-score.empty { background: none; color: var(--gold-soft); font-size: 26px; }
+  .p-score.low { background: none; color: var(--ruby); }
+  .p-state { position: absolute; right: 0; bottom: 2px; font-size: 11px; color: var(--ink-3); letter-spacing: .1em; }
+  .p-state.bad { color: var(--ruby); font-weight: 600; }
+
+  .end { padding: 28px 0 6px; }
+
+  /* 身份确认 */
+  .who-box p { position: relative; z-index: 1; font-size: 18px; line-height: 1.7; font-weight: 600; text-align: center; margin: 4px 0 20px; }
+  .who-box p b { font-weight: 800; }
+  .who-btns { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 10px; }
+  .who-btns .btn { width: 100%; padding: 0 12px; letter-spacing: .08em; text-indent: .08em; white-space: normal; line-height: 1.3; }
+
+  /* 出错 / 认不出 */
+  .msg { min-height: 86vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 12px; }
+  .msg h1 { font-size: 24px; font-weight: 800; letter-spacing: .16em; text-indent: .16em; margin: 14px 0 18px; }
+  .msg .divider { width: 180px; margin-bottom: 18px; }
+  .msg p { color: var(--ink-2); line-height: 1.9; font-size: 15px; }
+  .skeleton { height: 3px; width: 120px; background: var(--gold-soft); animation: pulse 1.2s infinite; }
+
+  @media (min-width: 700px) {
+    .keys button { height: 52px; }
+    .keys button:hover { background: var(--gold-faint); }
+    .keys button.on:hover { background: var(--emerald); }
+    .keys button.on.low:hover { background: var(--ruby); }
+    .st-keys button { height: 56px; }
+    .st-keys button:hover { background: rgba(246, 240, 227, .2); }
+    .st-keys button.on:hover { background: var(--foil-light); }
+    .st-keys button.on.low:hover { background: var(--ruby); }
+  }
+  #closedBar { margin: 0 0 14px; padding: 12px 14px; text-align: center; font-weight: 800; letter-spacing: .1em; background: var(--ruby); color: var(--ivory); }
+  body.closed .keys button, body.closed .card button { pointer-events: none; opacity: .4; }
+</style>
+</head>
+<body>
+<div class="rays"></div>
+<main class="wrap" id="app"><div class="msg"><div class="skeleton"></div></div></main>
+<script src="vendor/workbuddy-cloud-sdk.js"></script>
+<script src="cloud.js?v=12"></script>
+<script src="deco.js?v=12"></script>
+<script>
+const app = document.getElementById('app');
+const token = new URLSearchParams(location.search).get('token') || '';
+
+/* 记住这台设备上次用的是谁的码（彩排单独记，不混） */
+const MEM_KEY = DEMO ? 'camp_judge_demo' : 'camp_judge';
+function readMem() { try { return JSON.parse(localStorage.getItem(MEM_KEY) || 'null'); } catch (e) { return null; } }
+function writeMem(v) { try { localStorage.setItem(MEM_KEY, JSON.stringify(v)); } catch (e) {} }
+function linkFor(tk) { const u = new URL(location.href); u.searchParams.set('token', tk); return u.href; }
+
+/* 这次的码和上次不是同一个人：先问一句 */
+function confirmIdentity(me, all) {
+  const last = readMem();
+  const prev = last && last.token && last.token !== me.token ? all.find(p => p.token === last.token) : null;
+  if (!prev) { writeMem({ token: me.token, name: me.name }); return Promise.resolve(); }
+  return new Promise(resolve => {
+    const wrap = document.createElement('div');
+    wrap.className = 'pass-sheet';
+    wrap.innerHTML = `<div class="pass-box who-box">
+        <p>这是 <b>${esc(me.name)}</b> 的打分页。<br>你是${esc(me.name)}吗？</p>
+        <div class="who-btns">
+          <button type="button" class="btn" data-yes>我是${esc(me.name)}</button>
+          <button type="button" class="btn btn-line" data-no>不是，回到 ${esc(prev.name)} 的页面</button>
+        </div>
+      </div>`;
+    document.body.appendChild(wrap);
+    wrap.querySelector('[data-yes]').onclick = () => { writeMem({ token: me.token, name: me.name }); wrap.remove(); resolve(); };
+    wrap.querySelector('[data-no]').onclick = () => location.replace(linkFor(prev.token));
+  });
+}
+
+const KEYS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<button data-n="${n}" aria-label="${n} 分">${n}</button>`).join('') + '<span class="pass"></span>';
+
+(async () => {
+  const [all, st0] = await Promise.all([getAllParticipants(), getSettings()]);
+  const absentRaw = st0.absent || '', staffRaw = st0.staff || '';
+  const absent = parseAbsent(absentRaw), staff = parseAbsent(staffRaw);
+  const participants = all.filter(p => !absent.has(p.id) && !staff.has(p.id));   // 要打分的对象：上台选手（工作人员不被打分）
+  const me = all.find(p => p.token === token);
+  if (!me) {
+    app.innerHTML = `<div class="msg"><span class="eyebrow">评委选票</span><h1>二维码认不出来</h1><div class="divider"><i></i></div>
+      <p>请扫管理员发给你的那张专属二维码。<br>每人一张，别用别人的。</p></div>`;
+    return;
+  }
+  await confirmIdentity(me, all);
+  if (absent.has(me.id)) {
+    app.innerHTML = `<div class="msg"><span class="eyebrow">评委选票</span><h1>${esc(me.name)}，你被标记为缺席</h1><div class="divider"><i></i></div>
+      <p>今天不用打分。如果你在场，请找管理员取消缺席，再刷新这页。</p></div>`;
+    return;
+  }
+  document.title = `${me.name} · 打分`;
+
+  const mine = {};
+  (await getScores()).filter(s => s.judge_token === token).forEach(s => { mine[s.target_id] = s.score; });
+  const ordered = byDrawOrder(participants);
+  const byId = {};
+  participants.forEach(p => { byId[p.id] = p; });
+  const total = participants.length;
+
+  app.innerHTML = `
+    <header>
+      <p class="who"><b>${esc(me.name)}</b> 的打分页</p>
+      <div class="rule frame"><span><b class="pass-b">6</b>分及格</span><i class="sep"></i><span><b class="foil">10</b>分最好</span></div>
+    </header>
+    <section class="stage" id="stage">
+      <div class="st-label"><i></i>现在台上<i></i></div>
+      <div class="st-body" id="stBody"><p class="st-empty">&nbsp;</p></div>
+    </section>
+    <div class="list-head"><span class="lh-title">全部名单</span><span class="count" id="count"></span></div>
+    <div id="list">${ordered.map(p => `
+      <section class="person" id="p${p.id}" data-id="${p.id}">
+        <div class="p-head">
+          <span class="seq foil">${p.draw_order ? pad2(p.draw_order) : ''}</span>
+          <span class="p-name">${esc(p.name)}${p.id === me.id ? '<span class="tag">自己</span>' : ''}<span class="tag live" hidden>台上</span></span>
+          <span class="p-score num foil" id="s${p.id}"></span>
+        </div>
+        <div class="keys">${KEYS}</div>
+        <div class="p-state" id="st${p.id}"></div>
+      </section>`).join('')}
+    </div>
+    <div class="end"><div class="divider"><i></i></div></div>`;
+
+  const card = document.getElementById('stage');
+  const stBody = document.getElementById('stBody');
+  let stageId = null;
+
+  ordered.forEach(p => paintRow(p.id));
+  paintCount();
+
+  app.addEventListener('click', e => {
+    const btn = e.target.closest('.keys button');
+    if (!btn) return;
+    const holder = btn.closest('[data-id]');
+    if (holder) rate(+holder.dataset.id, +btn.dataset.n);
+  });
+
+  function paintKeys(box, v) {
+    box.querySelectorAll('button').forEach(b => {
+      const n = +b.dataset.n;
+      b.classList.toggle('on', n === v);
+      b.classList.toggle('low', n === v && v < 6);
+    });
+  }
+  function paintScore(el, v) {
+    el.textContent = v ? v : '—';
+    el.classList.toggle('empty', !v);
+    el.classList.toggle('low', !!v && v < 6);
+  }
+  function paintRow(id) {
+    const v = mine[id];
+    const row = document.getElementById('p' + id);
+    if (!row) return;
+    paintKeys(row.querySelector('.keys'), v);
+    paintScore(document.getElementById('s' + id), v);
+    if (id === stageId) {
+      paintKeys(stBody.querySelector('.keys'), v);
+      paintScore(document.getElementById('stScore'), v);
+    }
+  }
+  function setState(id, cls, text) {
+    const st = document.getElementById('st' + id);
+    if (st) { st.className = 'p-state' + (cls ? ' ' + cls : ''); st.textContent = text; }
+    if (id === stageId) {
+      const s2 = document.getElementById('stState');
+      if (s2) { s2.className = 'st-state' + (cls ? ' ' + cls : ''); s2.textContent = text; }
+    }
+  }
+
+  function paintCount() {
+    const done = ordered.filter(p => mine[p.id]).length;
+    const c = document.getElementById('count');
+    const allDone = done >= total;
+    c.className = 'count' + (allDone ? ' all' : '');
+    c.innerHTML = allDone ? '全部打完，可以随时改' : `已打<span class="num foil">${done}</span>/ ${total}`;
+  }
+
+  /* 卡片内容：台上有人就显示这人 + 分数键；没人就一句话 */
+  function renderStage() {
+    const p = byId[stageId];
+    if (!p) {
+      stBody.removeAttribute('data-id');
+      stBody.innerHTML = '<p class="st-empty">还没开始<br>主持人叫到谁，这里就出现谁</p>';
+      return;
+    }
+    stBody.dataset.id = p.id;
+    const st = document.getElementById('st' + p.id);
+    stBody.innerHTML = `
+      <div class="st-head">
+        <span class="st-seq foil-light">${p.draw_order ? pad2(p.draw_order) : ''}</span>
+        <span class="st-name">${esc(p.name)}${p.id === me.id ? '<span class="tag">自己</span>' : ''}</span>
+        <span class="st-score foil-light" id="stScore"></span>
+      </div>
+      <div class="keys st-keys">${KEYS}</div>
+      <div class="st-state${st && st.classList.contains('bad') ? ' bad' : ''}" id="stState">${st ? esc(st.textContent) : ''}</div>`;
+    paintRow(p.id);
+  }
+  function switchStage(id) {
+    const first = stageId === null && !card.dataset.ready;
+    card.dataset.ready = '1';
+    stageId = id;
+    document.querySelectorAll('.tag.live').forEach(t => { t.hidden = true; });
+    document.querySelectorAll('.person.stage-row').forEach(r => r.classList.remove('stage-row'));
+    if (byId[id]) {
+      document.querySelector(`#p${id} .tag.live`).hidden = false;
+      document.getElementById('p' + id).classList.add('stage-row');
+    }
+    if (first) { renderStage(); return; }
+    stBody.classList.add('out');
+    setTimeout(() => {
+      renderStage();
+      stBody.classList.remove('out');
+      card.classList.remove('glint'); void card.offsetWidth; card.classList.add('glint');
+      if (navigator.vibrate) navigator.vibrate(12);
+    }, 200);
+  }
+
+  /* 同一个人连点几下：按顺序一次只存一个，最后存的一定是最后点的那个分 */
+  const timers = {}, saved = {}, saving = {}, touched = {};
+  Object.assign(saved, mine);
+  function rate(id, n) {
+    touched[id] = Date.now();
+    if (mine[id] === n) return;
+    mine[id] = n;
+    paintRow(id); paintCount();
+    if (!saving[id]) flush(id);
+  }
+  async function flush(id) {
+    saving[id] = true;
+    clearTimeout(timers[id]);
+    setState(id, '', '保存中');
+    while (mine[id] !== saved[id]) {
+      const n = mine[id];
+      try {
+        await saveScore(token, id, n);
+        saved[id] = n;
+      } catch (err) {
+        if (saved[id]) mine[id] = saved[id]; else delete mine[id];
+        paintRow(id); paintCount();
+        if (err && err.closed) { setState(id, 'bad', '名次已公布，不能再改'); toast('名次已公布，打分已关闭', false); setClosed(true); }
+        else { setState(id, 'bad', '没存上，再点一次'); toast('网络不好，这一分没存上', false); }
+        saving[id] = false; touched[id] = Date.now();
+        return;
+      }
+    }
+    saving[id] = false; touched[id] = Date.now();
+    setState(id, '', '已保存');
+    timers[id] = setTimeout(() => { if (!saving[id]) setState(id, '', ''); }, 1400);
+    if (navigator.vibrate) navigator.vibrate(8);
+  }
+
+  /* 名次公布后：页面顶部提示、分数键变灰不可点 */
+  function setClosed(on) {
+    document.body.classList.toggle('closed', on);
+    let bar = document.getElementById('closedBar');
+    if (on && !bar) {
+      bar = document.createElement('div');
+      bar.id = 'closedBar';
+      bar.textContent = '名次已公布，打分已关闭';
+      document.querySelector('header').after(bar);
+    }
+    if (bar) bar.hidden = !on;
+  }
+
+  /* 谁在台上：后台切换后这里几秒内跟着变 */
+  let stageBusy = false;
+  async function pollStage() {
+    if (stageBusy) return;
+    stageBusy = true;
+    try {
+      const st = await getSettings();
+      if (String(st.absent || '') !== absentRaw || String(st.staff || '') !== staffRaw) return location.reload();   // 名单变了，重新加载
+      setClosed(!DEMO && st.finalized === 'true');
+      const id = st.on_stage ? +st.on_stage : null;
+      const cur = byId[id] ? id : null;
+      if (cur !== stageId || !card.dataset.ready) switchStage(cur);
+    } catch (e) {} finally { stageBusy = false; }
+  }
+
+  /* 同一人在别的手机上改过分：每 4 秒对一次；正在存或刚点过的那一项不动 */
+  let mineBusy = false;
+  async function pollMine() {
+    if (DEMO || mineBusy) return;
+    mineBusy = true;
+    const t0 = Date.now();
+    try {
+      const rows = unwrap(await cloud.database.from('scores').select('target_id, score').eq('judge_token', token));
+      const server = {};
+      (rows || []).forEach(r => { server[r.target_id] = r.score; });
+      let changed = false;
+      ordered.forEach(({ id }) => {
+        if (saving[id] || (touched[id] || 0) >= t0 - 300) return;
+        const v = server[id];
+        if (v == null) {
+          if (mine[id] != null) { delete mine[id]; delete saved[id]; paintRow(id); changed = true; }
+        } else if (mine[id] !== v) {
+          mine[id] = v; saved[id] = v; paintRow(id); changed = true;
+          const st = document.getElementById('st' + id);
+          if (st && st.classList.contains('bad')) setState(id, '', '');
+        }
+      });
+      if (changed) paintCount();
+    } catch (e) {} finally { mineBusy = false; }
+  }
+
+  pollStage();
+  setInterval(pollStage, 3500);
+  setInterval(pollMine, 4000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { pollStage(); pollMine(); } });
+})().catch(() => {
+  app.innerHTML = '<div class="msg"><span class="eyebrow">评委选票</span><h1>没加载出来</h1><div class="divider"><i></i></div><p>网络可能不稳，下拉刷新或重新扫码。</p></div>';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f6f0e3">
+<title>训练营路演打分</title>
+<link rel="stylesheet" href="theme.css?v=12">
+<style>
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 32px 40px; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+  header { display: flex; justify-content: space-between; align-items: center; padding: 24px 0; }
+  header .num { font-size: 16px; letter-spacing: .12em; color: var(--gold); }
+  .hero { text-align: center; padding: 8vh 0 6vh; }
+  .hero h1 { font-size: clamp(56px, 8.6vw, 112px); margin-top: 18px; }
+  .hero .divider { width: min(420px, 70%); margin: 26px auto 0; }
+  .hero p { margin-top: 18px; font-size: 16px; letter-spacing: .3em; color: var(--ink-2); }
+  .hero p .num { font-size: 24px; color: var(--gold); letter-spacing: 0; margin: 0 .2em; }
+
+  nav { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 26px; align-content: center; align-items: end; }
+  nav a { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-decoration: none;
+    aspect-ratio: 5 / 7; padding: 0 16px 32px; transition: transform .45s var(--spring), box-shadow .45s var(--ease); }
+  nav a::after { transition: inset .45s var(--ease), border-color .3s; }
+  nav a .n { font-family: var(--num); font-weight: 900; font-size: clamp(56px, 6.4vw, 84px); line-height: 1; transition: transform .45s var(--spring); }
+  nav a .t { font-size: clamp(22px, 2.3vw, 30px); font-weight: 800; letter-spacing: .3em; text-indent: .3em; margin-top: 14px; }
+  nav a .d { font-size: 13px; letter-spacing: .14em; margin-top: 10px; opacity: .78; }
+  nav a:hover { transform: translateY(-10px); box-shadow: 0 26px 40px -24px rgba(27, 34, 32, .5); }
+  nav a:hover::after { inset: 6px; border-color: var(--gold-hi); }
+  nav a:hover .n { transform: scale(1.08); }
+  nav a.plain { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 1px var(--gold-soft); }
+  nav a.plain::after { border-color: var(--gold-soft); }
+  nav a.plain:hover { box-shadow: inset 0 0 0 1px var(--gold-soft), 0 26px 40px -24px rgba(27, 34, 32, .35); }
+  nav a.plain:hover::after { border-color: var(--gold); }
+
+  .foot { margin-top: 44px; }
+  .foot p { text-align: center; margin-top: 16px; font-size: 14px; letter-spacing: .14em; color: var(--ink-3); }
+
+  @media (max-width: 760px) {
+    .wrap { padding: 0 16px 28px; }
+    .hero { padding: 6vh 0 5vh; }
+    .hero h1 { font-size: 52px; }
+    .hero p { font-size: 14px; letter-spacing: .2em; }
+    nav { grid-template-columns: 1fr 1fr; gap: 14px; }
+    nav a { padding-bottom: 24px; aspect-ratio: 4 / 5; }
+    nav a .n { font-size: 52px; }
+    nav a .t { font-size: 22px; margin-top: 10px; }
+    nav a .d { font-size: 12px; letter-spacing: .06em; }
+    .foot { margin-top: 32px; }
+    .foot p { font-size: 13px; letter-spacing: .06em; line-height: 1.7; }
+  }
+</style>
+</head>
+<body class="corners">
+<div class="rays"></div>
+<div class="wrap">
+  <header><span class="eyebrow">百言科技 · 训练营</span><span class="num" id="date"></span></header>
+  <section class="hero">
+    <h1 class="title-deco">路演打分</h1>
+    <div class="divider"><i></i></div>
+    <p id="caption"><span class="num">15</span>人上台<span class="num">18</span>人打分</p>
+  </section>
+  <nav>
+    <a class="arch emerald" href="draw.html"><span class="n foil-light">01</span><span class="t">抽签</span><span class="d">定出场顺序</span></a>
+    <a class="arch sapphire" href="rank.html"><span class="n foil-light">02</span><span class="t">现场大屏</span><span class="d">台上是谁 · 打分进度</span></a>
+    <a class="arch ruby" href="final.html"><span class="n foil-light">03</span><span class="t">颁奖</span><span class="d">公布名次后开放</span></a>
+    <a class="arch plain" href="admin.html"><span class="n foil">04</span><span class="t">后台</span><span class="d">二维码 · 进度 · 公布</span></a>
+  </nav>
+  <div class="foot">
+    <div class="divider"><i></i></div>
+    <p>评委扫自己的二维码进打分页，不用从这里进</p>
+  </div>
+</div>
+<script src="vendor/workbuddy-cloud-sdk.js"></script>
+<script src="cloud.js?v=12"></script>
+<script src="deco.js?v=12"></script>
+<script>
+const d = new Date();
+document.getElementById('date').textContent = `${d.getFullYear()}.${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`;
+function paint(n, m) {
+  document.getElementById('caption').innerHTML = `<span class="num">${n}</span>人上台<span class="num">${m}</span>人打分`;
+}
+getRoster().then(r => paint(r.players.length, r.judges.length)).catch(() => {});
+</script>
+</body>
+</html>
