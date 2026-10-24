@@ -73,8 +73,7 @@
 <script src="cloud.js?v=12"></script>
 <script src="deco.js?v=12"></script>
 <script>
-const d = new Date();
-document.getElementById('date').textContent = `${d.getFullYear()}.${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`;
+document.getElementById('date').textContent = '2026.10.25';   // 第二期活动日期（原来显示当天日期）
 function paint(n, m) {
   document.getElementById('caption').innerHTML = `<span class="num">${n}</span>人上台<span class="num">${m}</span>人打分`;
 }
