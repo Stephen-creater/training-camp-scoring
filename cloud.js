@@ -1,5 +1,32 @@
 /* 训练营打分系统 · 数据层与公共小工具
    依赖：vendor/workbuddy-cloud-sdk.js（必须先加载） */
+
+/* GitHub Pages 版（第二期起）：WorkBuddy 不让微信打开它托管的网页，网页改放 GitHub Pages。
+   但 WorkBuddy 数据库只收「自家网址」或「不带来源」的请求，所以页面放在 app/ 目录、由外壳 shell.js 装进沙盒框里运行，
+   这样请求不带来源。沙盒框里不能用浏览器存储，改为内存里存一份、写进 window.name（框内跳页也保留），并交给外壳代存。 */
+(function () {
+  if (window !== top) {
+    try { localStorage.length; } catch (e) {
+      const PRE = 'camp_store:';
+      let st = { l: {}, s: {} };
+      try { if (window.name.startsWith(PRE)) st = JSON.parse(window.name.slice(PRE.length)); } catch (e2) {}
+      const save = () => { window.name = PRE + JSON.stringify(st); parent.postMessage({ campStore: st }, '*'); };
+      const mk = k => ({
+        getItem: n => (n in st[k] ? st[k][n] : null),
+        setItem: (n, v) => { st[k][n] = String(v); save(); },
+        removeItem: n => { delete st[k][n]; save(); },
+      });
+      Object.defineProperty(window, 'localStorage', { value: mk('l'), configurable: true });
+      Object.defineProperty(window, 'sessionStorage', { value: mk('s'), configurable: true });
+    }
+    // 让外壳的地址栏和标题跟着框里的页面走，刷新后还在同一页
+    const tell = () => parent.postMessage({ campNav: { url: location.pathname.replace('/app/', '/') + location.search + location.hash, title: document.title } }, '*');
+    tell(); addEventListener('load', tell);
+    const t = document.querySelector('title'); if (t) new MutationObserver(tell).observe(t, { childList: true, characterData: true, subtree: true });
+  } else if (/\/app\/[^/]*$/.test(location.pathname)) {
+    location.replace(location.href.replace('/app/', '/'));   // 直接打开了 app/ 里的页面：换回外壳
+  }
+})();
 const cloud = WorkBuddyCloud.createWorkBuddyCloud({
   endpoint: 'https://camp-scoring-gz.app.workbuddy.host',
   publishableKey: 'wbpk_06KE60P5cB0lhTrGCKcONG_MiYvT1lQwjVQhbcS627llU0xQpvvYcK5',
