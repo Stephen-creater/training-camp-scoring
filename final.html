@@ -181,7 +181,7 @@ function locked(title, text) {
     const from = bgm.volume, t0 = performance.now();
     (function f(t) { const k = Math.min(1, (t - t0) / ms); bgm.volume = from + (v - from) * k; if (k < 1) requestAnimationFrame(f); })(t0);
   };
-  const startBgm = () => { if (bgmOn && bgm.paused) bgm.play().then(() => fadeTo(.35)).catch(() => {}); };
+  const startBgm = () => { if (bgmOn && bgm.paused) bgm.play().then(() => fadeTo(.2)).catch(() => {}); };
   startBgm();
   document.addEventListener('pointerdown', startBgm);
   document.addEventListener('keydown', startBgm);
@@ -231,7 +231,7 @@ function locked(title, text) {
   }
 
   async function champion() {
-    if (bgmOn && !bgm.paused) { fadeTo(.5, 1200); setTimeout(() => fadeTo(.35, 3000), 7000); }   // 冠军时音乐推高一点
+    if (bgmOn && !bgm.paused) { fadeTo(.3, 1200); setTimeout(() => fadeTo(.2, 3000), 7000); }   // 冠军时音乐推高一点
     const dim = document.getElementById('dim');
     if (!reduce) {
       dim.animate([{ opacity: 0 }, { opacity: .88 }], { duration: 500, easing: 'ease-in', fill: 'forwards' });
