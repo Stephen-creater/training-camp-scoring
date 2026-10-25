@@ -1,8 +1,8 @@
 # 训练营路演打分系统
 
-一个用于线下训练营路演的 H5 打分系统，覆盖 **抽签定出场顺序 → 评委扫码打分 → 现场大屏 → 后台催办 → 颁奖揭晓** 的完整流程。纯静态前端，数据存放在 WorkBuddy 云数据库，手机扫码即用，无需登录。
+一个用于线下训练营路演的 H5 打分系统，覆盖 **抽签定出场顺序 → 评委扫码打分 → 现场大屏 → 后台催办 → 颁奖揭晓** 的完整流程。纯静态前端，数据存放在 WorkBuddy 云数据库，手机扫码即用（微信里也能直接打开），无需登录。
 
-已于 2026 年 10 月在一场 17 人路演中实际使用（16 名学员上台、19 人打分，含 3 名工作人员）。
+已在两场线下路演中实际使用：2026-10 杭州站（16 名学员上台、19 人打分）、2026-10 广州站（15 名学员上台、18 人打分）。各期部署情况与接手说明见 [docs/交接文档.md](docs/交接文档.md)。
 
 ![现场大屏](docs/screenshots/stage-screen.png)
 
@@ -102,14 +102,17 @@ python3 -m http.server 8765
 
 ## 部署
 
-本项目部署在 WorkBuddy 云服务（静态托管 + 数据库）：
+网页发布在 GitHub Pages，数据库使用 WorkBuddy 云数据库（三张表，见[数据模型](#数据模型)，对匿名用户开放读写）。
 
-1. 将整个文件夹发布到 WorkBuddy 应用，需包含 `vendor/`、`fonts/`、`assets/` 目录。
-2. 数据库需要三张表（见[数据模型](#数据模型)），对匿名用户开放读写（活动场景、无账号体系）。
-3. 发布后逐个比对线上与本地文件是否一致。
-4. 每次修改共享文件后，提升各页面中 `theme.css`、`cloud.js`、`deco.js` 的 `?v=` 版本号，避免现场设备使用缓存的旧代码。
+WorkBuddy 托管的网页在微信内无法打开，而它的数据库只接受自家域名或「来源为空」的请求，所以发布产物采用「沙盒外壳」结构：原始页面放在 `app/`，外层同名页面（`pages/shell.js`）把它装进 sandbox iframe 运行。生成与发布：
 
-也可以部署到任何静态托管平台，只需把 `cloud.js` 中的数据库连接换成你自己的后端。
+```bash
+bash pages/build.sh <输出目录>      # 生成发布文件（外壳 + app/）
+```
+
+把输出目录的内容提交到 `gh-pages` 分支即可上线。发布后逐个比对线上与本地文件；每次修改 `theme.css`、`cloud.js`、`deco.js`，要提升各页面中的 `?v=` 版本号，避免现场设备使用缓存的旧代码。详细步骤见 [docs/交接文档.md](docs/交接文档.md)。
+
+也可以部署到任何静态托管平台，只需把 `cloud.js` 中的数据库连接换成你自己的后端（不再需要外壳）。
 
 ## 配置
 
@@ -162,10 +165,18 @@ echo -n "新口令" | shasum -a 256
 ├── assets/             颁奖背景音乐及来源说明
 ├── fonts/              数字字体
 ├── vendor/             第三方库（本地化，不依赖 CDN）
-├── docs/screenshots/   README 截图
-├── 需求文档.md          原始需求
-└── 交接文档.md          部署与现场使用说明
+├── pages/              GitHub Pages 发布：沙盒外壳 shell.js 与生成脚本 build.sh
+├── docs/
+│   ├── 交接文档.md      当前状态、部署方式、现场使用、规矩（接手先读）
+│   ├── 需求文档.md      原始需求（第一期）
+│   ├── archive/        过时的历史文档
+│   └── screenshots/    README 截图
+└── 评委二维码/
+    ├── 杭州站/          第一期评委二维码
+    └── 广州站/          第二期评委二维码
 ```
+
+`.wbapp_*.genie` 和 `.workbuddy/` 是 WorkBuddy 的应用配置与工作记录，带「第一期」字样的是第一期应用的配置，保留备查。
 
 ## 设计说明
 
@@ -184,7 +195,7 @@ echo -n "新口令" | shasum -a 256
 
 | 资源 | 作者 | 许可 |
 |---|---|---|
-| 背景音乐《Heroic Age》 | Kevin MacLeod（[incompetech.com](https://incompetech.com)） | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| 背景音乐 | 第二期由活动方提供，来源见 `assets/BGM来源.txt`；第一期为 Kevin MacLeod《Heroic Age》（[incompetech.com](https://incompetech.com)） | 第一期曲目为 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
 | 数字字体 Big Shoulders Display | Patric King / Fontsource | SIL Open Font License 1.1 |
 | [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) | Kazuhiko Arase | MIT |
 | [SheetJS](https://sheetjs.com)（xlsx 0.18.5） | SheetJS LLC | Apache-2.0 |
